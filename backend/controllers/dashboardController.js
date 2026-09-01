@@ -182,6 +182,45 @@ const updateUserRole = async (req, res) => {
   }
 };
 
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { first_name, last_name, email, password } = req.body;
+    
+    if (!first_name || !email) {
+      return res.status(400).json({ success: false, message: 'Nama depan dan email wajib diisi.' });
+    }
+
+    const db = await getDBConnection();
+    
+    // Check if email belongs to someone else
+    const [existing] = await db.query('SELECT id FROM users WHERE email = ? AND id != ?', [email, id]);
+    if (existing.length > 0) {
+      return res.status(400).json({ success: false, message: 'Email sudah terdaftar pada pengguna lain.' });
+    }
+
+    let query = 'UPDATE users SET first_name = ?, last_name = ?, email = ?';
+    let params = [first_name, last_name || '', email];
+
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      query += ', password = ?';
+      params.push(hashedPassword);
+    }
+
+    query += ' WHERE id = ?';
+    params.push(id);
+
+    await db.query(query, params);
+    
+    res.json({ success: true, message: 'Data pengguna berhasil diperbarui.' });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ success: false, message: 'Gagal memperbarui pengguna.' });
+  }
+};
+
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -207,4 +246,5 @@ exports.deleteReview = deleteReview;
 exports.getAllUsers = getAllUsers;
 exports.createUser = createUser;
 exports.updateUserRole = updateUserRole;
+exports.updateUser = updateUser;
 exports.deleteUser = deleteUser;
