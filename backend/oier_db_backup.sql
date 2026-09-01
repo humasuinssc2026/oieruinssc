@@ -167,7 +167,7 @@ CREATE TABLE IF NOT EXISTS `site_visits` (
   `ip_address` varchar(45) NOT NULL,
   `visited_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE = InnoDB AUTO_INCREMENT = 52 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+) ENGINE = InnoDB AUTO_INCREMENT = 58 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
 # ------------------------------------------------------------
 # SCHEMA DUMP FOR TABLE: user_history
@@ -183,7 +183,7 @@ CREATE TABLE IF NOT EXISTS `user_history` (
   KEY `material_id` (`material_id`),
   CONSTRAINT `user_history_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `user_history_ibfk_2` FOREIGN KEY (`material_id`) REFERENCES `materials` (`id`) ON DELETE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 173 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+) ENGINE = InnoDB AUTO_INCREMENT = 176 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
 # ------------------------------------------------------------
 # SCHEMA DUMP FOR TABLE: users
@@ -764,7 +764,7 @@ VALUES
     '/uploads/documents/document-1788238134764-710611734.jpg',
     'published',
     0,
-    2,
+    3,
     '2026-09-01 11:48:54',
     'Penelitian Tindakan Kelas',
     'SNJ6007J'
@@ -993,6 +993,30 @@ INSERT INTO
   `site_visits` (`id`, `ip_address`, `visited_at`)
 VALUES
   (51, '::1', '2026-09-01 11:54:10');
+INSERT INTO
+  `site_visits` (`id`, `ip_address`, `visited_at`)
+VALUES
+  (52, '::1', '2026-09-01 13:18:10');
+INSERT INTO
+  `site_visits` (`id`, `ip_address`, `visited_at`)
+VALUES
+  (53, '::1', '2026-09-01 13:18:10');
+INSERT INTO
+  `site_visits` (`id`, `ip_address`, `visited_at`)
+VALUES
+  (54, '::1', '2026-09-01 13:18:25');
+INSERT INTO
+  `site_visits` (`id`, `ip_address`, `visited_at`)
+VALUES
+  (55, '::1', '2026-09-01 13:18:25');
+INSERT INTO
+  `site_visits` (`id`, `ip_address`, `visited_at`)
+VALUES
+  (56, '::1', '2026-09-01 13:27:36');
+INSERT INTO
+  `site_visits` (`id`, `ip_address`, `visited_at`)
+VALUES
+  (57, '::1', '2026-09-01 13:27:36');
 
 # ------------------------------------------------------------
 # DATA DUMP FOR TABLE: user_history
@@ -1020,8 +1044,8 @@ VALUES
     1,
     'Super',
     'Admin',
-    'admin@oier.uin.ac.id',
-    'password123',
+    'oier@uinssc',
+    '$2b$10$W5Sbm2gUVyxTFIAW4lsmF.XvUN1H4EaQyXzxR7NeAjITd2OIFKet2',
     'superadmin',
     'active',
     '2026-08-19 16:19:33',
