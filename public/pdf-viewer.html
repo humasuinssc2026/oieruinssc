@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Viewer (Protected)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <style>
+    body { 
+      margin: 0; 
+      padding: 20px 0;
+      background: #333; 
+      overflow-y: auto; 
+      text-align: center; 
+      user-select: none; /* Mencegah seleksi teks */
+    }
+    canvas { 
+      margin: 0 auto 20px auto; 
+      display: block; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5); 
+      background: white;
+      max-width: 95%;
+      height: auto;
+    }
+    #loading {
+      color: white;
+      font-family: sans-serif;
+      margin-top: 50px;
+    }
+  </style>
+</head>
+<body oncontextmenu="return false;">
+  <!-- Menonaktifkan klik kanan di seluruh body HTML -->
+  
+  <div id="loading">Memuat modul, mohon tunggu...</div>
+  <div id="pdf-container"></div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const pdfUrl = urlParams.get('file');
+    const userName = urlParams.get('user') || 'Pengguna OIER';
+
+    if (!pdfUrl) {
+      document.getElementById('loading').innerText = 'URL File tidak ditemukan.';
+    } else {
+      // Setup PDF.js worker
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+      
+      const container = document.getElementById('pdf-container');
+      const loading = document.getElementById('loading');
+
+      pdfjsLib.getDocument(pdfUrl).promise.then(pdf => {
+        loading.style.display = 'none'; // Sembunyikan loading
+        
+        // Render semua halaman berurutan ke bawah
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          pdf.getPage(pageNum).then(page => {
+            const scale = 1.5; // Kualitas render
+            const viewport = page.getViewport({ scale });
+            
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            container.appendChild(canvas);
+            
+            page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
+              // Draw Watermark
+              context.save();
+              context.globalAlpha = 0.25;
+              context.font = "bold 60px Arial";
+              context.fillStyle = "#000000";
+              context.translate(canvas.width / 2, canvas.height / 2);
+              context.rotate(-Math.PI / 4);
+              context.textAlign = "center";
+              context.fillText("OIER UIN SIBER", 0, -50);
+              context.font = "bold 40px Arial";
+              context.fillStyle = "#ff0000";
+              context.fillText("Diakses oleh: " + userName, 0, 20);
+              context.font = "20px Arial";
+              context.fillStyle = "#666666";
+              context.fillText(new Date().toLocaleString('id-ID'), 0, 70);
+              context.restore();
+            });
+          });
+        }
+      }).catch(err => {
+        console.error('Error loading PDF:', err);
+        loading.innerText = 'Gagal memuat modul PDF.';
+      });
+    }
+  </script>
+</body>
+</html>
