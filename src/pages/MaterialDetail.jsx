@@ -67,7 +67,7 @@ export default function MaterialDetail() {
           {/* Sidebar Metadata */}
           <div style={{ background: 'white', borderRadius: 'var(--border-radius)', boxShadow: 'var(--shadow-sm)', padding: '2rem' }}>
             <span style={{ display: 'inline-block', background: 'rgba(25,135,84,0.1)', color: 'var(--primary)', padding: '0.25rem 0.75rem', borderRadius: '50px', fontSize: '0.85rem', fontWeight: 600, marginBottom: '1rem' }}>
-              {doc.category.toUpperCase()}
+              {(doc.category || doc.category_slug || '').toUpperCase()}
             </span>
             <h1 style={{ fontSize: '1.8rem', marginBottom: '1rem', lineHeight: 1.3 }}>{doc.title}</h1>
             <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Dokumen materi bacaan untuk mendukung proses pembelajaran mandiri mahasiswa.</p>

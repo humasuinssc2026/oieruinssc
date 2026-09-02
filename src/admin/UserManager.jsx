@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Search, UserPlus, Shield, UserCheck, UserX, Trash2, Edit2 } from 'lucide-react';
+import { Search, UserPlus, Shield, UserCheck, UserX, Trash2, Edit2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAppContext } from '../utils/Store';
 
 export default function UserManager() {
+  const { token } = useAppContext();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("Semua Peran");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
   
   const [formData, setFormData] = useState({
     first_name: '',
@@ -16,7 +21,7 @@ export default function UserManager() {
     password: '',
     role: 'dosen'
   });
-  const [showEditModal, setShowEditModal] = useState(false);
+
   const [editFormData, setEditFormData] = useState({
     id: null,
     first_name: '',
@@ -28,7 +33,9 @@ export default function UserManager() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/users`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/users`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.success) {
         setUsers(data.data);
@@ -51,7 +58,10 @@ export default function UserManager() {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/users`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(formData)
       });
       const data = await res.json();
@@ -75,7 +85,10 @@ export default function UserManager() {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/users/${id}/role`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ role: newRole })
       });
       const data = await res.json();
@@ -91,13 +104,39 @@ export default function UserManager() {
     }
   };
 
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/users/${id}/status`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message);
+        setUsers(users.map(u => u.id === id ? { ...u, status: newStatus } : u));
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Gagal mengubah status');
+    }
+  };
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/users/${editFormData.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(editFormData)
       });
       const data = await res.json();
@@ -138,7 +177,8 @@ export default function UserManager() {
 
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/users/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.success) {
@@ -250,12 +290,31 @@ export default function UserManager() {
                     )}
                   </td>
                   <td>
-                    <span className={`status-badge ${user.status === 'active' ? 'status-published' : 'status-pending'}`}>
-                      {user.status === 'active' ? 'Aktif' : 'Nonaktif'}
+                    <span className={`status-badge ${user.status === 'active' ? 'status-published' : (user.status === 'pending' ? 'status-draft' : 'status-blocked')}`} style={{ background: user.status === 'pending' ? '#fff3cd' : '', color: user.status === 'pending' ? '#856404' : '' }}>
+                      {user.status === 'active' ? 'Aktif' : (user.status === 'pending' ? 'Menunggu' : 'Diblokir')}
                     </span>
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {user.status === 'pending' && (
+                        <>
+                          <button 
+                            onClick={() => handleStatusChange(user.id, 'active')}
+                            style={{ border: 'none', background: '#d4edda', padding: '0.4rem', borderRadius: '4px', cursor: 'pointer', color: '#155724' }}
+                            title="Terima Pengguna"
+                          >
+                            <UserCheck size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(user.id, user.role)}
+                            style={{ border: 'none', background: '#f8d7da', padding: '0.4rem', borderRadius: '4px', cursor: 'pointer', color: '#721c24' }}
+                            title="Tolak & Hapus"
+                          >
+                            <UserX size={16} />
+                          </button>
+                        </>
+                      )}
+                      
                       <button 
                         onClick={() => openEditModal(user)}
                         style={{ border: 'none', background: '#e3f2fd', padding: '0.4rem', borderRadius: '4px', cursor: 'pointer', color: '#0d6efd' }}
@@ -302,9 +361,14 @@ export default function UserManager() {
                 <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ced4da' }} />
               </div>
 
-              <div>
+              <div style={{ position: 'relative' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Kata Sandi (Otomatis Aktif)</label>
-                <input type="password" required minLength="6" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ced4da' }} />
+                <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid #ced4da', borderRadius: '6px', overflow: 'hidden' }}>
+                  <input type={showPassword ? "text" : "password"} required minLength="6" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} style={{ flex: 1, padding: '0.8rem', border: 'none', outline: 'none' }} />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ background: 'transparent', border: 'none', padding: '0 0.8rem', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -351,9 +415,14 @@ export default function UserManager() {
                 <input type="email" required value={editFormData.email} onChange={e => setEditFormData({...editFormData, email: e.target.value})} style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ced4da' }} />
               </div>
 
-              <div>
+              <div style={{ position: 'relative' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Kata Sandi Baru (Opsional)</label>
-                <input type="password" minLength="6" placeholder="Kosongkan jika tidak ingin mengubah sandi" value={editFormData.password} onChange={e => setEditFormData({...editFormData, password: e.target.value})} style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ced4da' }} />
+                <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1px solid #ced4da', borderRadius: '6px', overflow: 'hidden' }}>
+                  <input type={showEditPassword ? "text" : "password"} minLength="6" placeholder="Kosongkan jika tidak ingin mengubah sandi" value={editFormData.password} onChange={e => setEditFormData({...editFormData, password: e.target.value})} style={{ flex: 1, padding: '0.8rem', border: 'none', outline: 'none', background: 'transparent' }} />
+                  <button type="button" onClick={() => setShowEditPassword(!showEditPassword)} style={{ background: 'transparent', border: 'none', padding: '0 0.8rem', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                    {showEditPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Isi kolom ini HANYA jika Anda ingin mengganti kata sandi akun ini.</p>
               </div>
 

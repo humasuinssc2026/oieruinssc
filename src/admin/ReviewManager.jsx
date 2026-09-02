@@ -2,15 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Eye, EyeOff, Trash2, Search, Star, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAppContext } from '../utils/Store';
 
 export default function ReviewManager() {
+  const { token } = useAppContext();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
   const fetchReviews = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/reviews`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/reviews`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.success) {
         setReviews(data.data);
@@ -29,7 +33,10 @@ export default function ReviewManager() {
 
   const toggleVisibility = async (id, currentStatus) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/reviews/${id}/hide`, { method: 'PUT' });
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/reviews/${id}/hide`, { 
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.success) {
         toast.success(data.message);
@@ -45,7 +52,10 @@ export default function ReviewManager() {
 
   const deleteReview = async (id) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/reviews/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/reviews/${id}`, { 
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.success) {
         toast.success('Ulasan berhasil dihapus');

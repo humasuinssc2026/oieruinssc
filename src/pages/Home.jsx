@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Search, BookOpen, Video, Library, ChevronRight, CheckCircle, Users, Award, PlayCircle, Eye, Activity, Calendar, Clock, ChevronDown, ChevronUp, GraduationCap, BookText, Microscope, Quote, MessageCircle, Star } from 'lucide-react';
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAppContext } from '../utils/Store';
 
 // Helper for Google Drive ID
@@ -203,7 +204,7 @@ export default function Home() {
                   <Video size={30} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'white' }}>{(siteStats.totalVideos || 1200).toLocaleString('id-ID')}+ Video Interaktif</h3>
+                  <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'white' }}>{(siteStats.totalVideos ?? 1200).toLocaleString('id-ID')}+ Video Interaktif</h3>
                   <p style={{ margin: 0, color: 'rgba(255,255,255,0.8)', fontSize: '0.95rem' }}>Modul multimedia terbaru</p>
                 </div>
               </div>
@@ -214,73 +215,54 @@ export default function Home() {
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Users size={20} color="rgba(255,255,255,0.9)" />
-                <span style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>{(siteStats.totalLearners || 15000).toLocaleString('id-ID')}+ Pembelajar Aktif</span>
+                <span style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>{(siteStats.totalLearners ?? 15000).toLocaleString('id-ID')}+ Pembelajar Aktif</span>
+              </div>
+              
+              {/* Mini Chart di dalam Slide */}
+              <div style={{ marginTop: '2rem', width: '100%', height: '180px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={[
+                      { name: 'Live', pengunjung: siteStats.live || 0 },
+                      { name: 'Hari', pengunjung: siteStats.today || 0 },
+                      { name: 'Minggu', pengunjung: siteStats.week || 0 },
+                      { name: 'Bulan', pengunjung: siteStats.month || 0 }
+                    ]} 
+                    margin={{ top: 10, right: 0, left: -25, bottom: 0 }}
+                    barSize={35}
+                  >
+                    <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.1)" strokeDasharray="3 3" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500}} dy={5} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500}} />
+                    <Tooltip 
+                      cursor={{fill: 'rgba(255, 255, 255, 0.05)'}}
+                      contentStyle={{ borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(10px)' }}
+                      itemStyle={{ fontWeight: 700, color: 'white' }}
+                      labelStyle={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginBottom: '2px' }}
+                    />
+                    <Bar dataKey="pengunjung" radius={[6, 6, 0, 0]}>
+                      {
+                        [
+                          { fill: '#ef4444' }, // Merah - Live
+                          { fill: '#10b981' }, // Hijau - Hari ini
+                          { fill: '#3b82f6' }, // Biru - Minggu ini
+                          { fill: '#8b5cf6' }  // Ungu - Bulan ini
+                        ].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))
+                      }
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
 
-
             </div>
           </div>
 
         </div>
       </section>
 
-      {/* 2. Platform Statistics Section */}
-      {/* 2. Platform Statistics Section (Modern Premium) */}
-      <section className="reveal" style={{ maxWidth: '1200px', margin: '-4rem auto 4rem', position: 'relative', zIndex: 10, padding: '0 2rem' }}>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '1.5rem'
-        }}>
-          {/* Card 1 */}
-          <div className="stat-card-modern" style={{ background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(12px)', padding: '1.8rem', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', border: '1px solid rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', gap: '1.5rem', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'linear-gradient(to bottom, #ef4444, #fca5a5)' }}></div>
-            <div style={{ width: '60px', height: '60px', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.05) 100%)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: 'inset 0 2px 10px rgba(239,68,68,0.1)' }}>
-              <Activity size={28} />
-            </div>
-            <div>
-              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#1e293b', lineHeight: 1, letterSpacing: '-1px' }}>{siteStats.live}</div>
-              <div style={{ fontSize: '0.95rem', color: '#64748b', marginTop: '0.4rem', fontWeight: 600 }}>Pengunjung Live</div>
-            </div>
-          </div>
 
-          {/* Card 2 */}
-          <div className="stat-card-modern" style={{ background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(12px)', padding: '1.8rem', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', border: '1px solid rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', gap: '1.5rem', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'linear-gradient(to bottom, #10b981, #6ee7b7)' }}></div>
-            <div style={{ width: '60px', height: '60px', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: 'inset 0 2px 10px rgba(16,185,129,0.1)' }}>
-              <Clock size={28} />
-            </div>
-            <div>
-              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#1e293b', lineHeight: 1, letterSpacing: '-1px' }}>{siteStats.today}</div>
-              <div style={{ fontSize: '0.95rem', color: '#64748b', marginTop: '0.4rem', fontWeight: 600 }}>Pengunjung Hari Ini</div>
-            </div>
-          </div>
-
-          {/* Card 3 */}
-          <div className="stat-card-modern" style={{ background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(12px)', padding: '1.8rem', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', border: '1px solid rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', gap: '1.5rem', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'linear-gradient(to bottom, #3b82f6, #93c5fd)' }}></div>
-            <div style={{ width: '60px', height: '60px', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: 'inset 0 2px 10px rgba(59,130,246,0.1)' }}>
-              <Calendar size={28} />
-            </div>
-            <div>
-              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#1e293b', lineHeight: 1, letterSpacing: '-1px' }}>{siteStats.week}</div>
-              <div style={{ fontSize: '0.95rem', color: '#64748b', marginTop: '0.4rem', fontWeight: 600 }}>Pengunjung Minggu Ini</div>
-            </div>
-          </div>
-
-          {/* Card 4 */}
-          <div className="stat-card-modern" style={{ background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(12px)', padding: '1.8rem', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', border: '1px solid rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', gap: '1.5rem', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'linear-gradient(to bottom, #8b5cf6, #c4b5fd)' }}></div>
-            <div style={{ width: '60px', height: '60px', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%)', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: 'inset 0 2px 10px rgba(139,92,246,0.1)' }}>
-              <Users size={28} />
-            </div>
-            <div>
-              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#1e293b', lineHeight: 1, letterSpacing: '-1px' }}>{siteStats.month}</div>
-              <div style={{ fontSize: '0.95rem', color: '#64748b', marginTop: '0.4rem', fontWeight: 600 }}>Pengunjung Bulan Ini</div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* 3. Features Strip */}
       <section className="reveal" style={{ padding: '1rem 2rem 3rem' }}>

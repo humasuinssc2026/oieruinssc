@@ -25,7 +25,9 @@ export default function AdminLayout() {
 
   const handleLogout = (e) => {
     e.preventDefault();
-    logoutAdmin();
+    if (window.confirm("Apakah Anda yakin ingin keluar dari sesi?")) {
+      logoutAdmin();
+    }
   };
 
   return (
@@ -127,11 +129,11 @@ export default function AdminLayout() {
                 {user && user.profile_pic ? (
                   <img src={`${import.meta.env.VITE_API_URL}${user.profile_pic}`} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                  user ? user.name.charAt(0).toUpperCase() : 'A'
+                  user ? (user.name || user.first_name || 'A').charAt(0).toUpperCase() : 'A'
                 )}
               </div>
               <div>
-                <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>{user ? user.name : 'Admin OIER'}</p>
+                <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>{user ? (user.name || `${user.first_name} ${user.last_name || ''}`.trim()) : 'Admin OIER'}</p>
                 <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{user ? user.role : 'Super Admin'}</p>
               </div>
 

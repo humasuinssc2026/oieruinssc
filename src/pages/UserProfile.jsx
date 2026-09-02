@@ -49,8 +49,10 @@ export default function UserProfile() {
   }, [user, token, navigate]);
 
   const handleLogout = () => {
-    logoutAdmin();
-    navigate('/login');
+    if (window.confirm("Apakah Anda yakin ingin keluar dari sesi?")) {
+      logoutAdmin();
+      navigate('/login');
+    }
   };
 
   const handleProfilePicChange = async (e) => {

@@ -17,20 +17,49 @@ const getGDrivePreviewUrl = (url) => {
   return url;
 };
 
+// Helper for formatting category slug to readable text
+const formatCategory = (slug) => {
+  if (!slug) return 'Umum';
+  if (slug.toLowerCase() === 'kategori-umum') return 'Kategori Umum';
+  
+  // Format specific faculties/programs if needed, or just generic formatting
+  const formatted = slug.replace(/-/g, ' ').toUpperCase();
+  // Clean up double spaces or trailing spaces
+  return formatted.trim().replace(/\s+/g, ' ');
+};
+
 export default function VideoHub() {
   const { videos, user, token, hasMoreMaterials, loadMoreMaterials, isLoadingMaterials } = useAppContext();
-  const [activeCategory, setActiveCategory] = useState("");
+  const queryParams = new URLSearchParams(window.location.search);
+  const initialCategory = queryParams.get('category') || "";
+  const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVideoId, setSelectedVideoId] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [watchedVideos, setWatchedVideos] = useState([]);
   const videoRef = useRef(null);
+  const [fakultasList, setFakultasList] = useState([]);
+  const [prodiList, setProdiList] = useState([]);
 
   // Load watched history on mount
   useEffect(() => {
     window.scrollTo(0, 0);
     const history = JSON.parse(localStorage.getItem('watched_videos')) || [];
     setWatchedVideos(history);
+    
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/categories`);
+        const data = await res.json();
+        if (data.success) {
+          setFakultasList(data.data.fakultasList);
+          setProdiList(data.data.prodiList);
+        }
+      } catch (error) {
+        console.error("Failed to fetch categories", error);
+      }
+    };
+    fetchCategories();
   }, []);
 
   // States for Review Form & Captcha
@@ -44,6 +73,7 @@ export default function VideoHub() {
   const [captchaAnswer, setCaptchaAnswer] = useState(0);
   const [userCaptcha, setUserCaptcha] = useState("");
   const [showModuleModal, setShowModuleModal] = useState(false);
+  const [activeModuleUrl, setActiveModuleUrl] = useState(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
 
   const generateCaptcha = () => {
@@ -65,7 +95,7 @@ export default function VideoHub() {
 
   // Filter video based on category and search query
   const filteredVideos = videos.filter(v => {
-    const matchCategory = activeCategory === "" || v.category === activeCategory;
+    const matchCategory = activeCategory === "" || (v.category_slug || v.category) === activeCategory;
     const matchSearch = (v.title || "").toLowerCase().includes((searchQuery || "").toLowerCase()) || 
                         (v.author || "").toLowerCase().includes((searchQuery || "").toLowerCase());
     return matchCategory && matchSearch;
@@ -102,8 +132,8 @@ export default function VideoHub() {
     playingGdriveUrl = `${import.meta.env.VITE_API_URL}/api/materials/stream/${filename}`;
   }
 
-  const finalModuleUrl = currentModuleUrl 
-    ? (currentModuleUrl.startsWith('http') ? getGDrivePreviewUrl(currentModuleUrl) : currentModuleUrl)
+  const finalModuleUrl = activeModuleUrl 
+    ? (activeModuleUrl.startsWith('http') ? getGDrivePreviewUrl(activeModuleUrl) : activeModuleUrl)
     : null;
 
   useEffect(() => {
@@ -258,6 +288,51 @@ export default function VideoHub() {
                 style={{ width: '100%', height: '100%', border: 'none' }} 
                 title="Modul PDF"
               ></iframe>
+              {/* Overlay untuk menutupi tombol pop-out (eksternal link) di Google Drive iframe agar tidak bisa diunduh */}
+              {finalModuleUrl.includes('drive.google.com') && (
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  width: '60px',
+                  height: '50px',
+                  background: '#151515', /* Menyesuaikan warna header Google Drive */
+                  zIndex: 10,
+                  cursor: 'default'
+                }} title="Unduhan Dinonaktifkan"></div>
+              )}
+
+              {/* OIER Watermark Overlay */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                pointerEvents: 'none',
+                zIndex: 8,
+                display: 'flex',
+                flexWrap: 'wrap',
+                overflow: 'hidden',
+                opacity: 0.1,
+                alignContent: 'center',
+                justifyContent: 'center',
+                gap: '5rem',
+                padding: '2rem'
+              }}>
+                {Array.from({ length: 40 }).map((_, i) => (
+                  <div key={i} style={{
+                    fontSize: '3.5rem',
+                    fontWeight: '900',
+                    color: '#000',
+                    transform: 'rotate(-30deg)',
+                    whiteSpace: 'nowrap',
+                    userSelect: 'none'
+                  }}>
+                    OIER UIN SIBER
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -297,57 +372,18 @@ export default function VideoHub() {
               >
                 <option value="">Semua Kategori</option>
                 <option value="kategori-umum">Kategori Umum</option>
-                <optgroup label="Fakultas Ilmu Tarbiyah dan Keguruan">
-                  <option value="pai">Pendidikan Agama Islam (S1)</option>
-                  <option value="pba">Pendidikan Bahasa Arab (S1)</option>
-                  <option value="tbi">Tadris Bahasa Inggris (S1)</option>
-                  <option value="tips">Tadris Ilmu Pengetahuan Sosial (S1)</option>
-                  <option value="tmat">Tadris Matematika (S1)</option>
-                  <option value="tbiologi">Tadris Biologi (S1)</option>
-                  <option value="pgmi">Pendidikan Guru Madrasah Ibtidaiyah (S1)</option>
-                  <option value="piaud">Pendidikan Islam Anak Usia Dini (S1)</option>
-                  <option value="mpi">Manajemen Pendidikan Islam (S1)</option>
-                  <option value="tbind">Tadris Bahasa Indonesia (S1)</option>
-                  <option value="tkimia">Tadris Kimia (S1)</option>
-                  <option value="pjj-pai">PJJ Pendidikan Agama Islam (S1)</option>
-                  <option value="ppg">Pendidikan Profesi Guru Keagamaan (PPG)</option>
-                </optgroup>
-                <optgroup label="Fakultas Ekonomi dan Bisnis Islam">
-                  <option value="ps">Perbankan Syariah (S1)</option>
-                  <option value="es">Ekonomi Syariah (S1)</option>
-                  <option value="as">Akuntansi Syariah (S1)</option>
-                  <option value="pars">Pariwisata Syariah (S1)</option>
-                </optgroup>
-                <optgroup label="Fakultas Syariah">
-                  <option value="hk">Hukum Keluarga (Akhwalul Syaksiyah) (S1)</option>
-                  <option value="hes">Hukum Ekonomi Syari'ah (Muamalah) (S1)</option>
-                  <option value="htn">Hukum Tatanegara Islam (S1)</option>
-                  <option value="ilf">Ilmu Falak (S1)</option>
-                </optgroup>
-                <optgroup label="Fakultas Dakwah dan Komunikasi Islam">
-                  <option value="kpi">Komunikasi dan Penyiaran Islam (S1)</option>
-                  <option value="pmi">Pengembangan Masyarakat Islam (S1)</option>
-                  <option value="bki">Bimbingan dan Konseling Islam (S1)</option>
-                  <option value="sa">Sosiologi Agama (S1)</option>
-                </optgroup>
-                <optgroup label="Fakultas Ushuluddin dan Adab">
-                  <option value="spi">Sejarah Peradaban Islam (S1)</option>
-                  <option value="afi">Aqidah dan Filsafat Islam (S1)</option>
-                  <option value="iat">Ilmu Al-Qur'an dan Tafsir (S1)</option>
-                  <option value="ilh">Ilmu Hadis (S1)</option>
-                  <option value="bsa">Bahasa dan Sastra Arab (S1)</option>
-                  <option value="tp">Tasawuf dan Psikoterapi (S1)</option>
-                </optgroup>
-                <optgroup label="Fakultas Pascasarjana">
-                  <option value="mpi-s2">Manajemen Pendidikan Islam (S2)</option>
-                  <option value="pai-s2">Pendidikan Agama Islam (S2)</option>
-                  <option value="hk-s2">Hukum Keluarga (Akhwalul Syaksiyah) (S2)</option>
-                  <option value="es-s2">Ekonomi Syariah (S2)</option>
-                  <option value="pmi-s2">Pengembangan Masyarakat Islam (S2)</option>
-                  <option value="pjj-pai-s2">PJJ Pendidikan Agama Islam (S2)</option>
-                  <option value="pai-s3">Pendidikan Agama Islam (S3)</option>
-                  <option value="hki-s3">Hukum Keluarga Islam (Ahwal Syakhshiyyah) (S3)</option>
-                </optgroup>
+                {fakultasList.map(fakultas => (
+                  <optgroup key={fakultas.id} label={fakultas.name}>
+                    {prodiList.filter(p => p.fakultasId === fakultas.id).map(prodi => {
+                      const slug = prodi.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                      return (
+                        <option key={prodi.id} value={slug}>
+                          {prodi.name}
+                        </option>
+                      )
+                    })}
+                  </optgroup>
+                ))}
               </select>
             </div>
           </div>
@@ -368,7 +404,7 @@ export default function VideoHub() {
             </div>
             <div style={{ padding: '2rem' }}>
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--primary)' }}>
-                <span style={{ background: 'rgba(25,135,84,0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>{(mainVideo.category || 'Umum').toUpperCase()}</span>
+                <span style={{ background: 'rgba(25,135,84,0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>{formatCategory(mainVideo.category_slug || mainVideo.category)}</span>
                 <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Clock size={16} /> Diunggah {mainVideo.time}</span>
                 <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginLeft: 'auto' }}><Eye size={16} /> {mainVideo.views || 0} Kali Ditonton</span>
               </div>
@@ -426,7 +462,7 @@ export default function VideoHub() {
                   <h3 style={{ marginBottom: '1rem', color: 'var(--text-dark)', fontSize: '1.3rem' }}>Informasi Materi (Course Information)</h3>
                   <ul style={{ color: 'var(--text-muted)', lineHeight: '1.8', marginBottom: '2rem', paddingLeft: '1.5rem', fontSize: '1rem' }}>
                     <li><strong>Instruktur:</strong> {mainVideo.author}</li>
-                    <li><strong>Kategori:</strong> {(mainVideo.category || 'Umum').toUpperCase()}</li>
+                    <li><strong>Kategori:</strong> {formatCategory(mainVideo.category_slug || mainVideo.category)}</li>
                     <li><strong>Total Video:</strong> {mainVideo.parts ? mainVideo.parts.length + 1 : 1} Video</li>
                     <li><strong>Modul Pendukung:</strong> {
                       (mainVideo.module_url || (mainVideo.parts && mainVideo.parts.some(p => p.module_url))) 
@@ -525,7 +561,7 @@ export default function VideoHub() {
                                   try {
                                     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/materials/${mainVideo.id}/discussions`, {
                                       method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
+                                      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
                                       body: JSON.stringify({ text: forumInput, user_id: user.id, user_name: user.name })
                                     });
                                     const data = await res.json();
@@ -559,61 +595,61 @@ export default function VideoHub() {
                 <div style={{ animation: 'fadeIn 0.3s' }}>
                   <h3 style={{ marginBottom: '1rem' }}>Daftar Materi</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <div 
-                      onClick={() => {
-                        setActivePartId(null);
-                        setShowVideoModal(true);
-                      }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: activePartId === null ? '#e8f5e9' : '#f8f9fa', borderRadius: '8px', border: activePartId === null ? '1px solid var(--primary)' : '1px solid #e9ecef', cursor: 'pointer' }}
-                    >
-                      <PlayCircle size={20} color={activePartId === null ? "var(--primary)" : "var(--text-muted)"} />
-                      <div style={{ flex: 1, fontWeight: activePartId === null ? '600' : '500', color: activePartId === null ? 'var(--primary)' : 'inherit' }}>Bagian 1: {mainVideo.title} (Utama)</div>
-                    </div>
-
-                    {mainVideo.parts && mainVideo.parts.map((part, idx) => (
+                    <React.Fragment>
                       <div 
-                        key={part.id}
                         onClick={() => {
-                          setActivePartId(part.id);
+                          setActivePartId(null);
                           setShowVideoModal(true);
                         }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: activePartId === part.id ? '#e8f5e9' : '#f8f9fa', borderRadius: '8px', border: activePartId === part.id ? '1px solid var(--primary)' : '1px solid #e9ecef', cursor: 'pointer' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: activePartId === null ? '#e8f5e9' : '#f8f9fa', borderRadius: '8px', border: activePartId === null ? '1px solid var(--primary)' : '1px solid #e9ecef', cursor: 'pointer' }}
                       >
-                        <PlayCircle size={20} color={activePartId === part.id ? "var(--primary)" : "var(--text-muted)"} />
-                        <div style={{ flex: 1, fontWeight: activePartId === part.id ? '600' : '500', color: activePartId === part.id ? 'var(--primary)' : 'inherit' }}>Bagian {idx + 2}: {part.title}</div>
+                        <PlayCircle size={20} color={activePartId === null ? "var(--primary)" : "var(--text-muted)"} />
+                        <div style={{ flex: 1, fontWeight: activePartId === null ? '600' : '500', color: activePartId === null ? 'var(--primary)' : 'inherit' }}>Bagian 1: {mainVideo.title} (Utama)</div>
                       </div>
-                    ))}
+                      
+                      {mainVideo.module_url && (
+                        <div 
+                          onClick={() => { setActiveModuleUrl(mainVideo.module_url); setShowModuleModal(true); }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.6rem 1rem', background: '#f8f9fa', borderRadius: '6px', border: '1px dashed #ced4da', cursor: 'pointer', transition: 'all 0.2s', marginTop: '0.5rem', marginLeft: '2rem' }} 
+                          onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = '#e8f5e9'; }} 
+                          onMouseOut={(e) => { e.currentTarget.style.borderColor = '#ced4da'; e.currentTarget.style.background = '#f8f9fa'; }}
+                        >
+                          <FileText size={18} color={mainVideo.module_url.includes('drive') ? "#0F9D58" : "#e74c3c"} />
+                          <div style={{ flex: 1, fontSize: '0.9rem', color: 'var(--text-dark)', fontWeight: '500' }}>
+                            Modul Pendukung Bagian 1
+                          </div>
+                        </div>
+                      )}
+                    </React.Fragment>
 
-                    {currentModuleUrl && (
-                      <div 
-                        onClick={() => setShowModuleModal(true)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1.5rem', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef', cursor: 'pointer', transition: 'all 0.2s' }} 
-                        onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)'; }} 
-                        onMouseOut={(e) => { e.currentTarget.style.borderColor = '#e9ecef'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
-                      >
-                        <div style={{ background: 'white', padding: '1rem', borderRadius: '4px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)', width: '60px', height: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {currentModuleUrl.includes('drive.google.com') ? (
-                            <>
-                              <FileText size={28} color="#0F9D58" style={{ marginBottom: '0.3rem' }} />
-                              <span style={{ color: '#0F9D58', fontSize: '0.6rem', fontWeight: 'bold' }}>DRIVE</span>
-                            </>
-                          ) : (
-                            <>
-                              <FileText size={28} color="#e74c3c" style={{ marginBottom: '0.3rem' }} />
-                              <span style={{ color: '#e74c3c', fontSize: '0.6rem', fontWeight: 'bold' }}>PDF</span>
-                            </>
-                          )}
+                    {mainVideo.parts && mainVideo.parts.map((part, idx) => (
+                      <React.Fragment key={part.id}>
+                        <div 
+                          onClick={() => {
+                            setActivePartId(part.id);
+                            setShowVideoModal(true);
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: activePartId === part.id ? '#e8f5e9' : '#f8f9fa', borderRadius: '8px', border: activePartId === part.id ? '1px solid var(--primary)' : '1px solid #e9ecef', cursor: 'pointer', marginTop: '0.5rem' }}
+                        >
+                          <PlayCircle size={20} color={activePartId === part.id ? "var(--primary)" : "var(--text-muted)"} />
+                          <div style={{ flex: 1, fontWeight: activePartId === part.id ? '600' : '500', color: activePartId === part.id ? 'var(--primary)' : 'inherit' }}>Bagian {idx + 2}: {part.title}</div>
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: '600', fontSize: '1.1rem', color: 'var(--text-dark)', marginBottom: '0.3rem' }}>
-                            {currentModuleUrl.includes('drive.google.com') ? 'Modul Pendukung (Google Drive)' : 'Modul Pendukung (PDF)'}
+
+                        {part.module_url && (
+                          <div 
+                            onClick={() => { setActiveModuleUrl(part.module_url); setShowModuleModal(true); }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.6rem 1rem', background: '#f8f9fa', borderRadius: '6px', border: '1px dashed #ced4da', cursor: 'pointer', transition: 'all 0.2s', marginTop: '0.5rem', marginLeft: '2rem' }} 
+                            onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = '#e8f5e9'; }} 
+                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#ced4da'; e.currentTarget.style.background = '#f8f9fa'; }}
+                          >
+                            <FileText size={18} color={part.module_url.includes('drive') ? "#0F9D58" : "#e74c3c"} />
+                            <div style={{ flex: 1, fontSize: '0.9rem', color: 'var(--text-dark)', fontWeight: '500' }}>
+                              Modul Pendukung Bagian {idx + 2}
+                            </div>
                           </div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                            {currentModuleUrl.includes('drive.google.com') ? 'Klik kotak ini untuk membuka modul secara langsung.' : 'Klik kotak ini untuk membuka dan membaca modul secara langsung.'}
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                        )}
+                      </React.Fragment>
+                    ))}
                   </div>
                 </div>
               )}
@@ -735,7 +771,7 @@ export default function VideoHub() {
                           try {
                             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/materials/${mainVideo.id}/reviews`, {
                               method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
+                              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                               body: JSON.stringify({ user_name: reviewName, rating: reviewRating, comment: reviewText })
                             });
                             const data = await res.json();
@@ -849,7 +885,7 @@ export default function VideoHub() {
                           </div>
                         )}
                         <span style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.8)', color: 'white', fontSize: '0.8rem', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                          Video
+                          {video.parts && video.parts.length > 0 ? `${video.parts.length + 1} Video` : 'Video'}
                         </span>
                         {isWatched && (
                           <span style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(25, 135, 84, 0.9)', color: 'white', fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 'bold' }}>

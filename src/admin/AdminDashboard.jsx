@@ -13,6 +13,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar
 } from 'recharts';
 
+import { useAppContext } from '../utils/Store';
+
 const visitorData = [
   { name: 'Senin', pengunjung: 1200 },
   { name: 'Selasa', pengunjung: 1900 },
@@ -37,21 +39,27 @@ export default function AdminDashboard() {
   const [formAuthor, setFormAuthor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { token } = useAppContext();
+
   const fetchDashboardData = async () => {
       try {
-        const statsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/stats`);
+        const headers = { Authorization: `Bearer ${token}` };
+        
+        const statsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/stats`, { headers });
         const statsData = await statsRes.json();
         if (statsData.success) {
           setStats(statsData.data);
         }
 
-        const chartRes = await fetch(`${import.meta.env.VITE_API_URL}/api/stats/chart-data`);
-        const chartData = await chartRes.json();
-        if (chartData.success) {
-          setChartData(chartData.data);
+        const chartRes = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/chart-data`, { headers });
+        if (chartRes.ok) {
+          const chartData = await chartRes.json();
+          if (chartData.success) {
+            setChartData(chartData.data);
+          }
         }
 
-        const recentRes = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/recent`);
+        const recentRes = await fetch(`${import.meta.env.VITE_API_URL}/api/dashboard/recent`, { headers });
         const recentData = await recentRes.json();
         if (recentData.success) {
           setRecentActivities(recentData.data);
@@ -239,7 +247,7 @@ export default function AdminDashboard() {
               recentActivities.map(activity => (
                 <tr key={activity.id}>
                   <td style={{ fontWeight: 500 }}>{activity.title}</td>
-                  <td>{activity.category_slug.toUpperCase()}</td>
+                  <td>{(activity.category_slug || activity.category || '').toUpperCase()}</td>
                   <td>{activity.author}</td>
                   <td>{activity.time}</td>
                   <td>

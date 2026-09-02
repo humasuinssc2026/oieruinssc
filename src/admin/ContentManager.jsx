@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { useAppContext } from '../utils/Store';
 
 export default function ContentManager() {
-  const { videos, documents, addVideo, addDocument, loadMoreMaterials, hasMoreMaterials, fetchMaterials } = useAppContext();
+  const { videos, documents, addVideo, addDocument, loadMoreMaterials, hasMoreMaterials, fetchMaterials, token } = useAppContext();
   
   const refreshMaterials = () => {
     fetchMaterials(1, false);
@@ -57,7 +57,10 @@ export default function ContentManager() {
   const handleDelete = async (id) => {
     if (window.confirm('Yakin ingin menghapus materi ini?')) {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/materials/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/materials/${id}`, { 
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
         const data = await res.json();
         if (data.success) {
           toast.success('Materi berhasil dihapus');
@@ -100,6 +103,7 @@ export default function ContentManager() {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/materials/${activePlaylistMaterial.id}/parts`, {
         method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
         body: formData
       });
       const data = await res.json();
@@ -126,7 +130,8 @@ export default function ContentManager() {
     if (!window.confirm('Hapus bagian ini?')) return;
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/materials/parts/${partId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.success) {
@@ -193,9 +198,15 @@ export default function ContentManager() {
       formData.append('thumbnail_file', formThumbnail);
     }
 
+    formData.append('_method', 'PUT');
+
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/materials/${editingMaterial.id}`, {
-        method: 'PUT',
+        method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
         body: formData
       });
       const data = await res.json();
@@ -248,6 +259,11 @@ export default function ContentManager() {
         formData.append('module_url', formModuleUrl);
       }
       if (formThumbnail) {
+        if (formThumbnail.size > 2 * 1024 * 1024) {
+          toast.error("Ukuran thumbnail tidak boleh melebihi 2MB!");
+          setIsSubmitting(false);
+          return;
+        }
         formData.append('thumbnail_file', formThumbnail);
       }
     }
@@ -255,6 +271,10 @@ export default function ContentManager() {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/materials/upload`, {
         method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
         body: formData,
       });
       
@@ -279,11 +299,11 @@ export default function ContentManager() {
         setFormModuleUrl('');
         setFormThumbnail(null);
       } else {
-        toast.error("Gagal menyimpan data: " + data.message);
+        toast.error("Gagal menyimpan data (V3): " + data.message);
       }
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Terjadi kesalahan jaringan atau server tidak merespons. Pastikan backend berjalan.");
+      toast.error(`Error Jaringan (V4): ${error.message || "Pastikan backend berjalan."}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -375,7 +395,7 @@ export default function ContentManager() {
             {activeContent.map((item) => (
               <tr key={item.id}>
                 <td style={{ fontWeight: 500 }}>{item.title}</td>
-                <td>{item.category.toUpperCase()}</td>
+                <td>{(item.category || item.category_slug || '').toUpperCase()}</td>
                 <td>
                   <div style={{ fontWeight: 500 }}>{item.mata_kuliah || '-'}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.kode_mata_kuliah || '-'}</div>
