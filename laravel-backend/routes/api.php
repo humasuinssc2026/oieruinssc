@@ -9,7 +9,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 
-Route::prefix('auth')->group(function () {
+Route::prefix('auth')->middleware('throttle:10,1')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
 });
