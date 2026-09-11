@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useAppContext } from '../utils/Store';
-import { User, LogOut, BookOpen, Clock, Settings, Camera } from 'lucide-react';
+import { User, LogOut, BookOpen, Clock, Settings, Camera, Bookmark, PlayCircle, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function UserProfile() {
@@ -9,8 +9,10 @@ export default function UserProfile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [history, setHistory] = useState([]);
+  const [bookmarkedMaterials, setBookmarkedMaterials] = useState([]);
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('history');
 
   const [uploadingPic, setUploadingPic] = useState(false);
 
@@ -37,6 +39,13 @@ export default function UserProfile() {
         if (historyData.success) {
           setHistory(historyData.data);
           setProgress(historyData.progress);
+        }
+
+        // Fetch bookmarks full data
+        const bookmarkRes = await fetch(`${import.meta.env.VITE_API_URL}/api/user/bookmarks`, { headers });
+        const bookmarkData = await bookmarkRes.json();
+        if (bookmarkData.success) {
+          setBookmarkedMaterials(bookmarkData.data);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -154,61 +163,119 @@ export default function UserProfile() {
           </div>
         </div>
 
-        {/* Konten Utama (Riwayat) */}
+        {/* Konten Utama (Riwayat & Bookmark) */}
         <div style={{ flex: '2 1 600px' }}>
           <div style={{ background: 'var(--surface-color)', padding: '2rem', borderRadius: '12px', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--surface-hover)', paddingBottom: '1rem', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Clock size={24} color="var(--primary)" />
-                <h2 style={{ margin: 0, color: 'var(--text-main)' }}>Riwayat Belajar Anda</h2>
-              </div>
+            
+            {/* TABS */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #E9ECEF', marginBottom: '2rem', gap: '2rem' }}>
+              <button 
+                onClick={() => setActiveTab('history')}
+                style={{ 
+                  background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem',
+                  fontWeight: activeTab === 'history' ? 600 : 400,
+                  color: activeTab === 'history' ? 'var(--primary)' : 'var(--text-muted)',
+                  borderBottom: activeTab === 'history' ? '2px solid var(--primary)' : '2px solid transparent',
+                  padding: '0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                }}
+              >
+                <Clock size={18} /> Riwayat Tontonan
+              </button>
+              <button 
+                onClick={() => setActiveTab('bookmarks')}
+                style={{ 
+                  background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem',
+                  fontWeight: activeTab === 'bookmarks' ? 600 : 400,
+                  color: activeTab === 'bookmarks' ? 'var(--primary)' : 'var(--text-muted)',
+                  borderBottom: activeTab === 'bookmarks' ? '2px solid var(--primary)' : '2px solid transparent',
+                  padding: '0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                }}
+              >
+                <Bookmark size={18} /> Materi Tersimpan
+              </button>
             </div>
 
-            {progress && progress.total > 0 && (
-              <div style={{ marginBottom: '2rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontWeight: 600, color: 'var(--text-dark)' }}>Progres Belajar Keseluruhan</span>
-                  <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{progress.percentage}%</span>
-                </div>
-                <div style={{ width: '100%', height: '10px', background: '#e2e8f0', borderRadius: '50px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: 'linear-gradient(90deg, #10b981, #34d399)', width: `${progress.percentage}%`, transition: 'width 1s ease-in-out' }}></div>
-                </div>
-                <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  Anda telah mempelajari {progress.completed} dari total {progress.total} materi yang tersedia.
-                </p>
-              </div>
-            )}
-            
-            {history.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-                <BookOpen size={48} color="var(--text-muted)" style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                <h3 style={{ color: 'var(--text-muted)' }}>Belum Ada Riwayat</h3>
-                <p style={{ color: 'var(--text-muted)' }}>Anda belum membuka materi apapun. Mulai jelajahi materi sekarang!</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {history.map(item => (
-                  <div key={item.id} style={{ 
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                    padding: '1rem', border: '1px solid var(--surface-hover)', borderRadius: '8px',
-                    transition: 'var(--transition)'
-                  }}>
-                    <div>
-                      <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--primary-dark)' }}>{item.title}</h4>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', background: 'var(--bg-color)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                        {item.type.toUpperCase()} • {item.category_slug}
-                      </span>
+            {activeTab === 'history' && (
+              <div style={{ animation: 'fadeIn 0.3s' }}>
+                {progress && progress.total > 0 && (
+                  <div style={{ marginBottom: '2rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-dark)' }}>Progres Belajar Keseluruhan</span>
+                      <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{progress.percentage}%</span>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block' }}>Diakses pada</span>
-                      <strong style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
-                        {new Date(item.last_accessed).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </strong>
+                    <div style={{ width: '100%', height: '10px', background: '#e2e8f0', borderRadius: '50px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', background: 'linear-gradient(90deg, #10b981, #34d399)', width: `${progress.percentage}%`, transition: 'width 1s ease-in-out' }}></div>
                     </div>
+                    <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Anda telah mempelajari {progress.completed} dari total {progress.total} materi yang tersedia.
+                    </p>
                   </div>
-                ))}
+                )}
+                
+                {history.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+                    <BookOpen size={48} color="var(--text-muted)" style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                    <h3 style={{ color: 'var(--text-muted)' }}>Belum Ada Riwayat</h3>
+                    <p style={{ color: 'var(--text-muted)' }}>Anda belum membuka materi apapun. Mulai jelajahi materi sekarang!</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
+                    {history.map(item => (
+                      <div key={item.id} onClick={() => navigate(`/video?v=${item.id}`)} style={{ cursor: 'pointer', background: 'white', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e9ecef', transition: 'transform 0.2s' }} onMouseOver={e=>e.currentTarget.style.transform='translateY(-3px)'} onMouseOut={e=>e.currentTarget.style.transform='translateY(0)'}>
+                        <div style={{ aspectRatio: '16/9', background: '#ddd', position: 'relative' }}>
+                          {item.thumbnail_url ? (
+                            <img src={`${import.meta.env.VITE_API_URL}${item.thumbnail_url}`} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary)', color: 'white' }}><PlayCircle size={30} /></div>
+                          )}
+                          <span style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', color: 'white', fontSize: '0.7rem', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>
+                            {new Date(item.last_accessed).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                          </span>
+                        </div>
+                        <div style={{ padding: '0.75rem' }}>
+                          <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</h4>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 500 }}>{item.category_slug}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
+
+            {activeTab === 'bookmarks' && (
+              <div style={{ animation: 'fadeIn 0.3s' }}>
+                {bookmarkedMaterials.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+                    <Bookmark size={48} color="var(--text-muted)" style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                    <h3 style={{ color: 'var(--text-muted)' }}>Belum Ada Materi Tersimpan</h3>
+                    <p style={{ color: 'var(--text-muted)' }}>Klik ikon simpan pada video untuk menyimpannya di sini.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
+                    {bookmarkedMaterials.map(item => (
+                      <div key={item.bookmark_id} onClick={() => navigate(`/video?v=${item.id}`)} style={{ cursor: 'pointer', background: 'white', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e9ecef', transition: 'transform 0.2s' }} onMouseOver={e=>e.currentTarget.style.transform='translateY(-3px)'} onMouseOut={e=>e.currentTarget.style.transform='translateY(0)'}>
+                        <div style={{ aspectRatio: '16/9', background: '#ddd', position: 'relative' }}>
+                          {item.thumbnail_url ? (
+                            <img src={`${import.meta.env.VITE_API_URL}${item.thumbnail_url}`} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary)', color: 'white' }}><PlayCircle size={30} /></div>
+                          )}
+                          <span style={{ position: 'absolute', top: '8px', left: '8px', background: 'var(--primary)', color: 'white', padding: '0.2rem', borderRadius: '50%' }}>
+                            <Bookmark size={14} fill="currentColor" />
+                          </span>
+                        </div>
+                        <div style={{ padding: '0.75rem' }}>
+                          <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</h4>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 500 }}>{item.category_slug}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
         </div>
 

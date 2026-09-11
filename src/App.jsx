@@ -19,6 +19,7 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Contact from './pages/Contact';
 import Faq from './pages/Faq';
+import Copyright from './pages/Copyright';
 import NotFound from './pages/NotFound';
 
 // Admin
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/faq" element={<Faq />} />
+          <Route path="/copyright" element={<Copyright />} />
           
           {/* Catch all route for 404 Not Found within Layout */}
           <Route path="*" element={<NotFound />} />

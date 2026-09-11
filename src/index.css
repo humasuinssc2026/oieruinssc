@@ -1,15 +1,18 @@
 :root {
   --text: #e2e8f0;
   --text-h: #ffffff;
-  --bg: #133b28;
-  --border: #1e5c3e;
-  --code-bg: #0f2c1d;
-  --accent: #d6b63a;
-  --accent-bg: rgba(214, 182, 58, 0.1);
+  --bg: #06130d; /* Dark Netflix-style background, but green tinted */
+  --bg-secondary: #0a1f15;
+  --border: #133b28;
+  --code-bg: #0a1f15;
+  --accent: #d6b63a; /* Gold accent */
+  --accent-bg: rgba(214, 182, 58, 0.15);
   --accent-border: rgba(214, 182, 58, 0.5);
-  --social-bg: rgba(30, 92, 62, 0.5);
+  --primary: #10b981; /* Fallback for existing inline styles */
+  --primary-dark: #047857;
+  --social-bg: rgba(19, 59, 40, 0.5);
   --shadow:
-    rgba(0, 0, 0, 0.2) 0 10px 15px -3px, rgba(0, 0, 0, 0.1) 0 4px 6px -2px;
+    rgba(0, 0, 0, 0.6) 0 10px 15px -3px, rgba(0, 0, 0, 0.4) 0 4px 6px -2px;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -17,7 +20,7 @@
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
+  color-scheme: dark;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -30,19 +33,10 @@
   }
 }
 
+/* Ensure no light scheme overrides the dark Netflix look */
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #e2e8f0;
-    --text-h: #ffffff;
-    --bg: #0e291c;
-    --border: #184730;
-    --code-bg: #0a1f15;
-    --accent: #eab308;
-    --accent-bg: rgba(234, 179, 8, 0.15);
-    --accent-border: rgba(234, 179, 8, 0.5);
-    --social-bg: rgba(24, 71, 48, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+    /* Variables are already dark */
   }
 
   #social .button-icon {
@@ -178,3 +172,33 @@ body, html {
   background-color: transparent !important;
   box-shadow: none !important;
 }
+
+/* Nav Menu Styling untuk Header Baru */
+.top-nav-link {
+  text-decoration: none;
+  color: var(--text-h);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: color 0.2s ease;
+}
+
+.top-nav-link:hover {
+  color: var(--primary);
+}
+
+/* Marquee Animation */
+@keyframes marquee {
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(-100%); }
+}
+
+.marquee-text {
+  animation: marquee 35s linear infinite;
+  display: inline-block;
+  white-space: nowrap;
+}
+

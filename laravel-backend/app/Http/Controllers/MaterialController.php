@@ -11,10 +11,35 @@ class MaterialController extends Controller
     public function index(Request $request)
     {
         $limit = $request->query('limit', 1000);
+        $search = $request->query('search');
+        $category = $request->query('category');
+        $type = $request->query('type');
+        $sort = $request->query('sort', 'latest');
         
-        $materials = Material::with(['uploader', 'parts'])
-            ->orderBy('created_at', 'desc')
-            ->paginate($limit);
+        $query = Material::with(['uploader', 'parts']);
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('author', 'like', "%{$search}%");
+            });
+        }
+
+        if ($category && $category !== 'all') {
+            $query->where('category_slug', $category);
+        }
+
+        if ($type && $type !== 'all') {
+            $query->where('type', $type);
+        }
+
+        if ($sort === 'popular') {
+            $query->orderBy('views', 'desc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+        
+        $materials = $query->paginate($limit);
 
         return response()->json([
             'success' => true,

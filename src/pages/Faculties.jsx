@@ -61,6 +61,10 @@ export default function Faculties() {
           const style = getFacultyStyle(faculty.id);
           const departments = prodiList.filter(p => p.fakultasId === faculty.id);
           const count = facultyStats[faculty.id] || 0;
+          
+          const displayName = faculty.name.includes('Pascasarjana') 
+            ? 'Program Magister dan Doktor' 
+            : faculty.name;
 
           return (
             <div 
@@ -83,7 +87,7 @@ export default function Faculties() {
                   {style.icon}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.5rem' }}>{faculty.name}</h3>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.5rem' }}>{displayName}</h3>
                   <p style={{ margin: 0, color: 'var(--text-muted)' }}>{count} Modul & Jurnal Tersedia</p>
                 </div>
                 <div style={{ color: 'var(--text-muted)' }}>

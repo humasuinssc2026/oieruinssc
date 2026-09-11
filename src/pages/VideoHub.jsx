@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Search, PlayCircle, Clock, User, MessageCircle, Filter, Star, FileText, Eye, Check, X } from 'lucide-react';
+import { Search, PlayCircle, Clock, User, MessageCircle, Filter, Star, FileText, Eye, Check, X, Bookmark } from 'lucide-react';
 import { useAppContext } from '../utils/Store';
 import StarRating from '../components/StarRating';
 import CommentsSection from '../components/CommentsSection';
@@ -32,9 +32,22 @@ export default function VideoHub() {
   const { videos, user, token, hasMoreMaterials, loadMoreMaterials, isLoadingMaterials } = useAppContext();
   const queryParams = new URLSearchParams(window.location.search);
   const initialCategory = queryParams.get('category') || "";
+  const initialVideoId = queryParams.get('v') ? parseInt(queryParams.get('v'), 10) : null;
+  
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedVideoId, setSelectedVideoId] = useState(null);
+  const [sortBy, setSortBy] = useState("latest");
+  const [selectedVideoId, setSelectedVideoId] = useState(initialVideoId);
+  const { bookmarks, toggleBookmark } = useAppContext();
+  
+  // Update selected video if URL changes
+  useEffect(() => {
+    const v = queryParams.get('v');
+    if (v) {
+      setSelectedVideoId(parseInt(v, 10));
+    }
+  }, [window.location.search]);
+
   const [activeTab, setActiveTab] = useState("overview");
   const [watchedVideos, setWatchedVideos] = useState([]);
   const videoRef = useRef(null);
@@ -99,6 +112,12 @@ export default function VideoHub() {
     const matchSearch = (v.title || "").toLowerCase().includes((searchQuery || "").toLowerCase()) || 
                         (v.author || "").toLowerCase().includes((searchQuery || "").toLowerCase());
     return matchCategory && matchSearch;
+  }).sort((a, b) => {
+    if (sortBy === 'popular') {
+      return (b.views || 0) - (a.views || 0);
+    }
+    // latest (default)
+    return new Date(b.created_at || b.time) - new Date(a.created_at || a.time);
   });
 
   const mainVideo = selectedVideoId 
@@ -386,6 +405,17 @@ export default function VideoHub() {
                 ))}
               </select>
             </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem', borderRadius: '6px', border: '1px solid #ced4da' }}>
+              <select 
+                value={sortBy} 
+                onChange={(e) => setSortBy(e.target.value)}
+                style={{ border: 'none', background: 'transparent', outline: 'none', cursor: 'pointer', paddingRight: '1rem' }}
+              >
+                <option value="latest">Terbaru</option>
+                <option value="popular">Terpopuler</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -410,7 +440,16 @@ export default function VideoHub() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.5rem' }}>
                 <h2 style={{ fontSize: '1.8rem', margin: 0 }}>{mainVideo.title}</h2>
-                <StarRating materialId={mainVideo.id} reviews={reviews} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <StarRating materialId={mainVideo.id} reviews={reviews} />
+                  <button 
+                    onClick={() => toggleBookmark(mainVideo.id)}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', color: bookmarks.includes(mainVideo.id) ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 600, padding: '0.4rem 0.8rem', borderRadius: '6px', backgroundColor: bookmarks.includes(mainVideo.id) ? 'rgba(25,135,84,0.1)' : 'transparent', transition: 'all 0.2s' }}
+                  >
+                    <Bookmark size={20} fill={bookmarks.includes(mainVideo.id) ? 'currentColor' : 'none'} />
+                    {bookmarks.includes(mainVideo.id) ? 'Tersimpan' : 'Simpan'}
+                  </button>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.95rem', flexWrap: 'wrap' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 500, color: 'var(--text-dark)' }}>
@@ -479,11 +518,11 @@ export default function VideoHub() {
                         setActivePartId(null);
                         setShowVideoModal(true);
                       }}
-                      style={{ cursor: 'pointer', color: activePartId === null ? 'var(--primary)' : 'var(--text-dark)', fontWeight: activePartId === null ? '600' : '400', transition: 'color 0.2s' }}
+                      style={{ cursor: 'pointer', color: activePartId === null ? 'var(--primary)' : 'var(--text-dark)', fontWeight: activePartId === null ? '600' : '400', transition: 'color 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                       onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'}
                       onMouseOut={(e) => e.currentTarget.style.color = activePartId === null ? 'var(--primary)' : 'var(--text-dark)'}
                     >
-                      1. {mainVideo.title} (Materi Utama)
+                      <PlayCircle size={18} /> 1. {mainVideo.title} (Materi Utama)
                     </div>
                     {mainVideo.parts && mainVideo.parts.map((part, idx) => (
                       <div 
@@ -492,11 +531,11 @@ export default function VideoHub() {
                           setActivePartId(part.id);
                           setShowVideoModal(true);
                         }}
-                        style={{ cursor: 'pointer', color: activePartId === part.id ? 'var(--primary)' : 'var(--text-dark)', fontWeight: activePartId === part.id ? '600' : '400', transition: 'color 0.2s' }}
+                        style={{ cursor: 'pointer', color: activePartId === part.id ? 'var(--primary)' : 'var(--text-dark)', fontWeight: activePartId === part.id ? '600' : '400', transition: 'color 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                         onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'}
                         onMouseOut={(e) => e.currentTarget.style.color = activePartId === part.id ? 'var(--primary)' : 'var(--text-dark)'}
                       >
-                        {idx + 2}. {part.title}
+                        <PlayCircle size={18} /> {idx + 2}. {part.title}
                       </div>
                     ))}
                   </div>
@@ -896,13 +935,22 @@ export default function VideoHub() {
                     <div style={{ padding: '1rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                         <h4 style={{ margin: 0, lineHeight: 1.4, fontSize: '1rem', flex: 1 }}>{video.title}</h4>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); toggleBookmark(video.id); }}
+                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.2rem', color: bookmarks.includes(video.id) ? 'var(--primary)' : 'var(--text-muted)' }}
+                          title={bookmarks.includes(video.id) ? 'Hapus dari Tersimpan' : 'Simpan ke Favorit'}
+                        >
+                          <Bookmark size={18} fill={bookmarks.includes(video.id) ? 'currentColor' : 'none'} />
+                        </button>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                        <p style={{ margin: 0, color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 500 }}>
+                          {video.mata_kuliah || 'Mata Kuliah Umum'}
+                        </p>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
                           <Eye size={12} /> {video.views || 0}
                         </span>
                       </div>
-                      <p style={{ margin: 0, color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.25rem' }}>
-                        {video.mata_kuliah || 'Mata Kuliah Umum'}
-                      </p>
                       <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem' }}>{video.author} • {video.time}</p>
                     </div>
                   </div>

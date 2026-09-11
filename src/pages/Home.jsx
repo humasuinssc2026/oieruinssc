@@ -1,33 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Search, BookOpen, Video, Library, ChevronRight, CheckCircle, Users, Award, PlayCircle, Eye, Activity, Calendar, Clock, ChevronDown, ChevronUp, GraduationCap, BookText, Microscope, Quote, MessageCircle, Star } from 'lucide-react';
-import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Search, Play, Info, Video, BookOpen, Volume2, VolumeX, Users, Bookmark } from 'lucide-react';
 import { useAppContext } from '../utils/Store';
-
-// Helper for Google Drive ID
-const getGDrivePreviewUrl = (url) => {
-  if (!url) return '';
-  if (url.includes('drive.google.com/file/d/')) {
-    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://drive.google.com/file/d/${match[1]}/preview`;
-    }
-  }
-  return url;
-};
+import Carousel from '../components/Carousel';
 
 export default function Home() {
-  const { videos, documents } = useAppContext();
+  const { videos, documents, categories } = useAppContext();
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const [isMuted, setIsMuted] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  
+  // Auto-slide logic for Hero section
+  useEffect(() => {
+    if (videos.length === 0) return;
+    const maxSlides = Math.min(videos.length, 10);
+    const timer = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % maxSlides);
+    }, 30000); // 30 seconds per slide
+    return () => clearInterval(timer);
+  }, [videos.length]);
   
   const [siteStats, setSiteStats] = useState({ live: 0, today: 0, week: 0, month: 0, totalVideos: 0, totalLearners: 0 });
-  const [faqOpenIndex, setFaqOpenIndex] = useState(null);
-  const [testimonials, setTestimonials] = useState([]);
 
   useEffect(() => {
-    // Record visit if not recorded in this session
+    // Record visit
     const recordVisit = async () => {
       if (!sessionStorage.getItem('visited')) {
         try {
@@ -52,49 +50,12 @@ export default function Home() {
       }
     };
 
-    // Fetch Testimonials
-    const fetchTestimonials = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/stats/testimonials`);
-        const data = await res.json();
-        if (data.success && data.data && data.data.length > 0) {
-          setTestimonials(data.data);
-        } else {
-          // Fallback if no reviews yet
-          setTestimonials([
-            { user_name: 'Admin', rating: 5, comment: 'Belum ada ulasan yang disetujui. Jadilah yang pertama memberikan ulasan!' }
-          ]);
-        }
-      } catch (err) {
-        console.error('Error fetching testimonials:', err);
-      }
-    };
-
     recordVisit().then(() => {
       fetchStats();
-      fetchTestimonials();
     });
     
-    // Refresh live stats every 30 seconds
     const interval = setInterval(fetchStats, 30000);
-
-    // Animasi Reveal saat Scroll
-    const reveals = document.querySelectorAll('.reveal');
-    const observer = new IntersectionObserver((entries, obs) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('active');
-          obs.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
-
-    reveals.forEach(r => observer.observe(r));
-
-    return () => {
-      clearInterval(interval);
-      observer.disconnect();
-    };
+    return () => clearInterval(interval);
   }, []);
 
   const handleSearch = (e) => {
@@ -104,344 +65,539 @@ export default function Home() {
     }
   };
 
-  const popularVideos = [...videos].sort((a, b) => {
-    return (b.views || 0) - (a.views || 0); 
-  }).slice(0, 12);
+  // Group data for carousels
+  const popularVideos = [...videos].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10);
+  const recentVideos = [...videos].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 10);
+  const allDocuments = documents || [];
 
-  const faculties = [
-    { name: 'Ilmu Tarbiyah dan Keguruan', icon: <GraduationCap size={32} />, color: '#10b981', desc: 'Fakultas Pendidikan' },
-    { name: 'Syariah dan Ekonomi Islam', icon: <BookText size={32} />, color: '#3b82f6', desc: 'Fakultas Hukum & Ekonomi' },
-    { name: 'Ushuluddin dan Adab', icon: <Library size={32} />, color: '#8b5cf6', desc: 'Fakultas Pemikiran Islam' },
-    { name: 'Dakwah dan Komunikasi', icon: <MessageCircle size={32} />, color: '#f59e0b', desc: 'Fakultas Komunikasi' }
-  ];
-
-
-  const faqs = [
-    { q: 'Apakah platform ini gratis untuk umum?', a: 'Ya, OIER UIN Siber memegang prinsip Open Education. Sebagian besar materi dapat diakses secara gratis oleh siapa saja.' },
-    { q: 'Bagaimana cara mengunduh materi PDF?', a: 'Anda hanya perlu mendaftar dan login. Setelah itu, buka halaman materi dan tombol unduh akan tersedia.' },
-    { q: 'Apakah materi ini diakui secara akademis?', a: 'Tentu saja. Seluruh materi dan video telah diverifikasi dan disusun langsung oleh tenaga ahli akademik UIN Siber Syekh Nurjati.' },
-    { q: 'Bisakah saya mengakses dari smartphone?', a: 'Sangat bisa. Tampilan website kami sudah sepenuhnya dioptimalkan (responsif) untuk layar handphone, tablet, hingga desktop.' }
-  ];
+  // Get a featured item for the Hero Billboard (Carousel)
+  const featuredVideo = popularVideos.length > 0 ? popularVideos[currentSlide % popularVideos.length] : null;
 
   return (
-    <div className="home-page" style={{ background: '#F4F7F6', overflowX: 'hidden' }}>
+    <div className="home-page" style={{ background: 'var(--bg)', minHeight: '100vh', paddingBottom: '50px' }}>
       <Helmet>
         <title>Beranda | OIER UIN Siber</title>
         <meta property="og:title" content="Beranda | OIER UIN Siber" />
         <meta property="og:description" content="Jelajahi materi pembelajaran dan video edukasi keislaman berkualitas tinggi secara gratis di OIER UIN Siber Syekh Nurjati." />
-        <meta name="description" content="Platform Pembelajaran Terbuka UIN Siber Syekh Nurjati Cirebon. Akses ribuan materi kuliah, jurnal, dan video pembelajaran." />
       </Helmet>
       
-      {/* 1. Modern Hero Section */}
+      {/* 1. Hero Billboard (Netflix Style with Video Background) */}
       <section style={{ 
-        background: 'url("/gedung-uinssc.jpg")', 
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-        position: 'relative', 
-        padding: '8rem 2rem 10rem', 
-        overflow: 'hidden' 
+        height: '75vh',
+        width: '100%',
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        background: featuredVideo && featuredVideo.thumbnail_url 
+          ? `url(${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${featuredVideo.thumbnail_url}) center/cover no-repeat` 
+          : '#000',
+        overflow: 'hidden'
       }}>
-        {/* Dark Overlay for better contrast */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.4)', zIndex: 0 }}></div>
+        
+        {/* Autoplaying Background Video / Iframe */}
+        {(() => {
+          const url = featuredVideo ? (featuredVideo.file_url || featuredVideo.url) : null;
+          let videoSrc = url;
+          let isIframe = false;
 
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '4rem', position: 'relative', zIndex: 1 }}>
+          if (url && url.includes('drive.google.com/file/d/')) {
+            const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (match && match[1]) {
+              // Google Drive blocks direct video streams for large files, so we MUST use an iframe preview.
+              // We add autoplay=1 and mute=1, though browsers may still require a click.
+              videoSrc = `https://drive.google.com/file/d/${match[1]}/preview?autoplay=1&mute=${isMuted ? '1' : '0'}`;
+              isIframe = true;
+            }
+          } else if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
+            isIframe = true;
+            const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+            if (ytMatch && ytMatch[1]) {
+              videoSrc = `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=${isMuted ? '1' : '0'}&controls=0&loop=1&playlist=${ytMatch[1]}&modestbranding=1`;
+            }
+          }
           
-          {/* Left Text (Glassmorphism Box) */}
-          <div style={{ 
-            flex: '1 1 500px', 
-            background: 'rgba(255, 255, 255, 0.85)', 
-            backdropFilter: 'blur(12px)', 
-            WebkitBackdropFilter: 'blur(12px)',
-            padding: '3rem', 
-            borderRadius: '24px', 
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-            border: '1px solid rgba(255, 255, 255, 0.5)'
-          }}>
-            <div style={{ display: 'inline-block', padding: '0.4rem 1rem', background: 'rgba(25,135,84,0.15)', color: 'var(--primary-dark)', borderRadius: '50px', fontSize: '0.9rem', fontWeight: 600, marginBottom: '1.5rem', animation: 'fadeInDown 0.5s' }}>
-              🌟 Platform Pembelajaran Terbuka
-            </div>
-            <h1 style={{ fontSize: '3.5rem', fontWeight: 800, color: 'var(--text-dark)', lineHeight: 1.2, marginBottom: '1.5rem', letterSpacing: '-1px' }}>
-              Open Islamic <br/>
-              <span style={{ color: 'var(--primary)' }}>Education Resources</span>
-            </h1>
-            <p style={{ fontSize: '1.15rem', color: 'var(--text-muted)', marginBottom: '2.5rem', lineHeight: 1.6 }}>
-              Akses ribuan materi kuliah, video pembelajaran, dan modul interaktif resmi dari pakar akademisi UIN Siber Syekh Nurjati Cirebon.
-            </p>
-            
-            <form onSubmit={handleSearch} style={{ display: 'flex', background: 'white', padding: '0.5rem', borderRadius: '50px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', maxWidth: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', paddingLeft: '1rem', flex: 1 }}>
-                <Search size={20} color="var(--text-muted)" />
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Materi apa yang ingin dipelajari?" 
-                  style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', padding: '0.75rem', fontSize: '1rem' }}
+          if (videoSrc) {
+            if (isIframe) {
+              return (
+                <iframe 
+                  src={videoSrc}
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    width: '100vw',
+                    height: '56.25vw', // 16:9 aspect ratio mapping for width
+                    minWidth: '133.33vh', // 16:9 aspect ratio mapping for 75vh height
+                    minHeight: '75vh',
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 0,
+                    border: 'none',
+                    opacity: 0.95
+                  }}
+                  allow="autoplay; fullscreen; encrypted-media"
                 />
-              </div>
-              <button type="submit" className="btn btn-primary" style={{ borderRadius: '50px', padding: '0.75rem 2rem', fontSize: '1rem' }}>Cari</button>
-            </form>
-          </div>
+              );
+            } else {
+              return (
+                <video 
+                  src={videoSrc}
+                  autoPlay 
+                  muted={isMuted}
+                  loop 
+                  playsInline
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    zIndex: 0,
+                    opacity: 0.95 
+                  }}
+                />
+              );
+            }
+          }
+          return null;
+        })()}
 
-          {/* Right Visual/Cards (Glassmorphism) */}
-          <div style={{ flex: '1 1 500px', position: 'relative', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ 
-              width: '100%', 
-              maxWidth: '450px', 
-              background: 'rgba(255, 255, 255, 0.1)', 
-              backdropFilter: 'blur(16px)', 
-              WebkitBackdropFilter: 'blur(16px)',
-              padding: '2.5rem', 
-              borderRadius: '24px', 
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              color: 'white',
-              position: 'relative' 
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ width: '60px', height: '60px', borderRadius: '16px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                  <Video size={30} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'white' }}>{(siteStats.totalVideos ?? 1200).toLocaleString('id-ID')}+ Video Interaktif</h3>
-                  <p style={{ margin: 0, color: 'rgba(255,255,255,0.8)', fontSize: '0.95rem' }}>Modul multimedia terbaru</p>
-                </div>
-              </div>
-              
-              <div style={{ height: '8px', background: 'rgba(255,255,255,0.2)', borderRadius: '4px', overflow: 'hidden', marginBottom: '1.5rem' }}>
-                <div style={{ width: '100%', height: '100%', background: '#4ade80' }}></div>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Users size={20} color="rgba(255,255,255,0.9)" />
-                <span style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>{(siteStats.totalLearners ?? 15000).toLocaleString('id-ID')}+ Pembelajar Aktif</span>
-              </div>
-              
-              {/* Mini Chart di dalam Slide */}
-              <div style={{ marginTop: '2rem', width: '100%', height: '180px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={[
-                      { name: 'Live', pengunjung: siteStats.live || 0 },
-                      { name: 'Hari', pengunjung: siteStats.today || 0 },
-                      { name: 'Minggu', pengunjung: siteStats.week || 0 },
-                      { name: 'Bulan', pengunjung: siteStats.month || 0 }
-                    ]} 
-                    margin={{ top: 10, right: 0, left: -25, bottom: 0 }}
-                    barSize={35}
-                  >
-                    <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.1)" strokeDasharray="3 3" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500}} dy={5} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500}} />
-                    <Tooltip 
-                      cursor={{fill: 'rgba(255, 255, 255, 0.05)'}}
-                      contentStyle={{ borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(10px)' }}
-                      itemStyle={{ fontWeight: 700, color: 'white' }}
-                      labelStyle={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginBottom: '2px' }}
-                    />
-                    <Bar dataKey="pengunjung" radius={[6, 6, 0, 0]}>
-                      {
-                        [
-                          { fill: '#ef4444' }, // Merah - Live
-                          { fill: '#10b981' }, // Hijau - Hari ini
-                          { fill: '#3b82f6' }, // Biru - Minggu ini
-                          { fill: '#8b5cf6' }  // Ungu - Bulan ini
-                        ].map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))
-                      }
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+        {/* Subtle bottom fade to blend with page */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0, left: 0, right: 0, height: '80px',
+          background: 'linear-gradient(to top, var(--bg) 0%, transparent 100%)',
+          zIndex: 1,
+          pointerEvents: 'none'
+        }}></div>
 
+        <div style={{ position: 'relative', zIndex: 3, padding: '0 4%', width: '100%', pointerEvents: 'none' }}>
+          {/* Floating Glass Box for Text */}
+          <div style={{ 
+            background: 'var(--bg)', 
+            padding: '2rem', 
+            borderRadius: '16px', 
+            maxWidth: '650px',
+            boxShadow: 'var(--shadow)',
+            opacity: 0.95,
+            pointerEvents: 'auto'
+          }}>
+            <div style={{ display: 'inline-block', padding: '0.4rem 1rem', background: 'var(--accent-bg)', color: 'var(--accent)', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700, marginBottom: '1rem', letterSpacing: '1px', border: '1px solid var(--accent)' }}>
+              N O W &nbsp; T R E N D I N G
+            </div>
+            
+            <h1 style={{ fontSize: 'clamp(2rem, 3.5vw, 3rem)', fontWeight: 800, lineHeight: 1.2, marginBottom: '1rem', color: 'var(--text-h)' }}>
+              {featuredVideo ? featuredVideo.title : 'Open Islamic Education Resources'}
+            </h1>
+            
+            <p style={{ fontSize: '1.1rem', color: 'var(--text)', marginBottom: '2rem', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              {featuredVideo && featuredVideo.description 
+                ? featuredVideo.description 
+                : 'Akses ribuan materi kuliah, video pembelajaran, dan modul interaktif resmi dari pakar akademisi UIN Siber Syekh Nurjati Cirebon secara gratis.'}
+            </p>
+
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <Link to={featuredVideo ? `/videos?v=${featuredVideo.id}` : "/videos"} style={{ textDecoration: 'none' }}>
+                <button style={{ 
+                  background: '#e50914', color: '#fff', border: 'none', padding: '0.8rem 2rem', borderRadius: '4px', fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', transition: 'background 0.2s'
+                }} onMouseOver={(e) => e.currentTarget.style.background = '#f40612'} onMouseOut={(e) => e.currentTarget.style.background = '#e50914'}>
+                  <Play fill="currentColor" size={24} /> Watch Now
+                </button>
+              </Link>
             </div>
           </div>
-
         </div>
-      </section>
 
-
-
-      {/* 3. Features Strip */}
-      <section className="reveal" style={{ padding: '1rem 2rem 3rem' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', justifyContent: 'space-between' }}>
-          {[
-            { icon: <BookOpen size={24} />, title: "Akses Terbuka & Gratis", desc: "Semua materi dapat diakses tanpa biaya tambahan." },
-            { icon: <CheckCircle size={24} />, title: "Materi Terverifikasi", desc: "Disusun langsung oleh tenaga ahli akademik." },
-            { icon: <PlayCircle size={24} />, title: "Belajar Fleksibel", desc: "Tonton video dan baca modul kapanpun Anda mau." },
-          ].map((feat, idx) => (
-            <div key={idx} style={{ 
-              flex: '1 1 300px', 
-              display: 'flex', 
-              alignItems: 'flex-start', 
-              gap: '1.2rem',
-              background: 'white',
-              padding: '1.5rem',
-              borderRadius: '16px',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.06)',
-              border: '1px solid rgba(0,0,0,0.04)'
-            }}>
-              <div style={{ width: '50px', height: '50px', borderRadius: '12px', background: 'rgba(25,135,84,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', flexShrink: 0 }}>
-                {feat.icon}
-              </div>
-              <div>
-                <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>{feat.title}</h4>
-                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>{feat.desc}</p>
-              </div>
-            </div>
+        {/* Carousel Indicators (Idlix/Netflix Style) */}
+        <div style={{
+          position: 'absolute',
+          bottom: '30px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: '12px',
+          zIndex: 10,
+          pointerEvents: 'auto'
+        }}>
+          {popularVideos.map((_, idx) => (
+            <div
+              key={idx}
+              onClick={() => setCurrentSlide(idx)}
+              style={{
+                width: currentSlide === idx ? '35px' : '10px',
+                height: '10px',
+                borderRadius: '5px',
+                background: currentSlide === idx ? '#e50914' : 'rgba(255, 255, 255, 0.5)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+              }}
+            />
           ))}
         </div>
+
+        {/* Volume Toggle Button */}
+        <button 
+          onClick={() => setIsMuted(!isMuted)}
+          style={{
+            position: 'absolute',
+            bottom: '100px', // Just above the gradient fade
+            right: '4%',
+            zIndex: 10,
+            background: 'rgba(0,0,0,0.5)',
+            border: '1px solid rgba(255,255,255,0.3)',
+            borderRadius: '50%',
+            width: '45px',
+            height: '45px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            cursor: 'pointer',
+            transition: 'background 0.2s',
+            pointerEvents: 'auto'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.8)'}
+          onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.5)'}
+        >
+          {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+        </button>
       </section>
 
+      {/* 2. Search & Stats Section (Elegant Design) */}
+      <section style={{ 
+        padding: 'clamp(2.5rem, 8vw, 4rem) 4%', 
+        position: 'relative', 
+        zIndex: 10,
+        background: 'linear-gradient(to bottom, var(--bg) 0%, rgba(245, 240, 235, 0.4) 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        overflow: 'hidden'
+      }}>
+        
+        {/* Background Ornaments (Floating Orbs) */}
+        <div style={{
+          position: 'absolute',
+          top: '10%',
+          left: '5%',
+          width: '300px',
+          height: '300px',
+          background: 'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0) 70%)',
+          borderRadius: '50%',
+          zIndex: -1,
+          animation: 'float 6s ease-in-out infinite'
+        }}></div>
+        <div style={{
+          position: 'absolute',
+          bottom: '10%',
+          right: '5%',
+          width: '400px',
+          height: '400px',
+          background: 'radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0) 70%)',
+          borderRadius: '50%',
+          zIndex: -1,
+          animation: 'float 8s ease-in-out infinite reverse'
+        }}></div>
+        <div style={{
+          position: 'absolute',
+          top: '40%',
+          right: '25%',
+          width: '150px',
+          height: '150px',
+          background: 'radial-gradient(circle, rgba(25, 77, 51, 0.1) 0%, rgba(25, 77, 51, 0) 70%)',
+          borderRadius: '50%',
+          zIndex: -1,
+          animation: 'float 7s ease-in-out infinite'
+        }}></div>
+        <div style={{
+          position: 'absolute',
+          bottom: '20%',
+          left: '20%',
+          width: '200px',
+          height: '200px',
+          background: 'radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0) 70%)',
+          borderRadius: '50%',
+          zIndex: -1,
+          animation: 'float 5s ease-in-out infinite'
+        }}></div>
 
+        {/* Tambahkan style keyframes jika belum ada */}
+        <style>
+          {`
+            @keyframes float {
+              0% { transform: translateY(0px) rotate(0deg); }
+              50% { transform: translateY(-20px) rotate(5deg); }
+              100% { transform: translateY(0px) rotate(0deg); }
+            }
+          `}
+        </style>
 
-      {/* 4. Latest Courses / Materials */}
-      <section className="reveal" style={{ padding: '5rem 2rem', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <h2 style={{ fontSize: '2.2rem', marginBottom: '0.5rem', color: 'var(--text-dark)' }}>Video Populer</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', margin: 0 }}>Tonton video pembelajaran yang paling banyak diminati.</p>
-          </div>
-          <Link to="/videos" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1.5rem', borderRadius: '50px' }}>
-            Jelajah Materi <ChevronRight size={18} />
-          </Link>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
-          {popularVideos.length > 0 ? popularVideos.map((mat, idx) => {
-            const isVideo = mat.type === 'video';
-            const previewUrl = isVideo ? getGDrivePreviewUrl(mat.file_url || mat.url) : null;
-            return (
-              <Link to={isVideo ? "/videos" : "/general-studies"} key={idx} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div style={{ 
-                  background: 'white', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', 
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease', cursor: 'pointer', display: 'flex', flexDirection: 'column', height: '100%' 
-                }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.1)'; }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.05)'; }}>
-                  
-                  {/* Thumbnail */}
-                  <div style={{ aspectRatio: '16/9', position: 'relative', background: isVideo ? '#000' : 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {isVideo ? (
-                    mat.thumbnail_url ? (
-                      <img src={`${import.meta.env.VITE_API_URL}${mat.thumbnail_url}`} alt="Thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                        <PlayCircle size={48} opacity={0.5} />
-                      </div>
-                    )
-                  ) : (
-                      isVideo ? <PlayCircle size={48} color="rgba(255,255,255,0.5)" /> : <BookOpen size={48} color="rgba(255,255,255,0.5)" />
-                    )}
-                    <div style={{ position: 'absolute', top: '1rem', left: '1rem', background: 'white', color: 'var(--text-dark)', padding: '0.3rem 0.8rem', borderRadius: '50px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-                      {isVideo ? <Video size={14} color="var(--primary)" /> : <BookOpen size={14} color="var(--primary)" />}
-                      {isVideo ? 'Video Pembelajaran' : 'Modul Teks'}
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{mat.category || mat.category_slug}</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                        <Eye size={14} /> {mat.views || 0}
-                      </span>
-                    </div>
-                    <h3 style={{ fontSize: '1.15rem', marginBottom: '1rem', lineHeight: 1.4, color: 'var(--text-main)', flex: 1 }}>
-                      {mat.title}
-                    </h3>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderTop: '1px solid #e9ecef', paddingTop: '1rem' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                        {mat.author?.charAt(0).toUpperCase() || 'D'}
-                      </div>
-                      <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text-dark)' }}>{mat.mata_kuliah || 'Mata Kuliah Umum'}</span> <br/>
-                        {mat.author}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            );
-          }) : (
-            // Skeleton / Placeholder if no data
-            [1,2,3,4].map(i => (
-              <div key={i} style={{ background: 'white', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', height: '320px', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ aspectRatio: '16/9', background: '#e9ecef' }}></div>
-                <div style={{ padding: '1.5rem', flex: 1 }}>
-                  <div style={{ width: '40%', height: '14px', background: '#e9ecef', borderRadius: '4px', marginBottom: '1rem' }}></div>
-                  <div style={{ width: '90%', height: '20px', background: '#e9ecef', borderRadius: '4px', marginBottom: '0.5rem' }}></div>
-                  <div style={{ width: '60%', height: '20px', background: '#e9ecef', borderRadius: '4px' }}></div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* 4.5. Testimonials (Social Proof) */}
-      <section className="reveal" style={{ padding: '4rem 2rem', background: '#ffffff' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-            <h2 style={{ fontSize: '2.2rem', marginBottom: '0.5rem', color: 'var(--text-dark)' }}>Apa Kata Mereka?</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', margin: 0 }}>Pengalaman belajar mahasiswa dengan platform OIER.</p>
-          </div>
+        <div style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: '2rem', 
+          width: '100%', 
+          maxWidth: '1200px', 
+          alignItems: 'stretch' 
+        }}>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-            {testimonials.map((testi, idx) => (
-              <div key={idx} style={{ 
-                background: '#F8FAFC', padding: '2rem', borderRadius: '24px', position: 'relative',
-                border: '1px solid #e2e8f0'
-              }}>
-                <Quote size={40} color="var(--primary)" style={{ opacity: 0.1, position: 'absolute', top: '1.5rem', right: '2rem' }} />
-                
-                <div style={{ display: 'flex', gap: '0.2rem', marginBottom: '1rem', color: '#f59e0b' }}>
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={16} fill={i < (testi.rating || 5) ? 'currentColor' : 'none'} color={i < (testi.rating || 5) ? 'currentColor' : '#cbd5e1'} />
-                  ))}
-                </div>
+          {/* Card 1: Platform Stats */}
+          <div style={{
+            flex: 1,
+            minWidth: '300px',
+            maxWidth: '500px',
+            background: 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderRadius: '16px',
+            padding: '2.5rem 1.5rem',
+            boxShadow: '0 20px 40px rgba(29, 77, 51, 0.15), 0 1px 3px rgba(29, 77, 51, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.6)',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center'
+          }}>
+          <h2 style={{ 
+            fontSize: '1.6rem', 
+            marginBottom: '0.8rem', 
+            color: '#1f2937',
+            fontWeight: 800,
+            lineHeight: 1.3
+          }}>
+            Platform Pembelajaran<br/>Terbuka
+          </h2>
+          <p style={{ color: '#6b7280', marginBottom: '2rem', fontSize: '0.95rem', padding: '0 0.5rem', lineHeight: 1.5 }}>
+            Jelajahi ribuan materi video dan bergabung bersama komunitas pembelajar UIN Siber.
+          </p>
 
-                <p style={{ fontSize: '1.05rem', color: 'var(--text-main)', lineHeight: 1.6, marginBottom: '2rem', position: 'relative', zIndex: 1, fontStyle: 'italic' }}>
-                  "{testi.comment || testi.text}"
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1.2rem' }}>
-                    {(testi.user_name || testi.name || 'U').charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h4 style={{ margin: 0, color: 'var(--text-dark)', fontSize: '1rem' }}>{testi.user_name || testi.name}</h4>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{testi.role || 'Mahasiswa'}</span>
-                  </div>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            gap: '1.5rem', 
+            marginTop: 'auto', 
+            flexWrap: 'wrap',
+            paddingTop: '1.5rem',
+            borderTop: '1px solid #f3f4f6'
+          }}>
+            <div style={{ textAlign: 'center', flex: '1 1 120px' }}>
+              <div style={{ 
+                fontSize: 'clamp(2rem, 5vw, 2.8rem)', 
+                fontWeight: 800, 
+                background: 'linear-gradient(135deg, var(--primary) 0%, #10b981 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                lineHeight: 1
+              }}>{(siteStats.totalVideos ?? 1200).toLocaleString('id-ID')}+</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.8rem, 2vw, 0.95rem)', fontWeight: 600, marginTop: '0.5rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Materi Video</div>
+            </div>
+            <div style={{ width: '1px', background: 'rgba(0,0,0,0.05)', display: 'block' }}></div>
+            <div style={{ textAlign: 'center', flex: '1 1 120px' }}>
+              <div style={{ 
+                fontSize: 'clamp(2rem, 5vw, 2.8rem)', 
+                fontWeight: 800, 
+                background: 'linear-gradient(135deg, var(--accent) 0%, #f59e0b 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                lineHeight: 1
+              }}>{(siteStats.totalLearners ?? 15000).toLocaleString('id-ID')}+</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.8rem, 2vw, 0.95rem)', fontWeight: 600, marginTop: '0.5rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Pembelajar Aktif</div>
+            </div>
+          </div>
+          </div>
+
+          {/* Card 2: Statistik Web & Flag Counter */}
+          <div style={{ 
+            flex: 1,
+            minWidth: '300px',
+            maxWidth: '500px',
+            background: 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderRadius: '16px',
+            boxShadow: '0 20px 40px rgba(29, 77, 51, 0.15), 0 1px 3px rgba(29, 77, 51, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.6)',
+            textAlign: 'left',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* Header Statistik */}
+            <div style={{
+              background: 'var(--primary)',
+              color: 'white',
+              padding: '1.2rem 1.5rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+            }}>
+              <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'white' }}>
+                Statistik Pengunjung
+              </h3>
+              <Bookmark size={20} fill="white" />
+            </div>
+
+            {/* Content List */}
+            <div style={{ padding: '1.5rem', position: 'relative' }}>
+              {/* Optional background pattern */}
+              <div style={{
+                position: 'absolute',
+                top: 0, left: 0, right: 0, bottom: 0,
+                opacity: 0.05,
+                backgroundImage: 'radial-gradient(var(--primary) 2px, transparent 2px)',
+                backgroundSize: '20px 20px',
+                zIndex: 0,
+                pointerEvents: 'none'
+              }}></div>
+
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem 0', borderBottom: '1px dashed rgba(0,0,0,0.1)' }}>
+                  <span style={{ color: 'var(--primary)', fontSize: '1.05rem', fontWeight: 500 }}>Hari ini</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>{(siteStats.today || 0).toLocaleString('id-ID')}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem 0', borderBottom: '1px dashed rgba(0,0,0,0.1)' }}>
+                  <span style={{ color: 'var(--primary)', fontSize: '1.05rem', fontWeight: 500 }}>Minggu ini</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>{(siteStats.week || 0).toLocaleString('id-ID')}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem 0', borderBottom: '1px dashed rgba(0,0,0,0.1)' }}>
+                  <span style={{ color: 'var(--primary)', fontSize: '1.05rem', fontWeight: 500 }}>Bulan ini</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>{(siteStats.month || 0).toLocaleString('id-ID')}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem 0' }}>
+                  <span style={{ color: 'var(--primary)', fontSize: '1.05rem', fontWeight: 500 }}>Jumlah</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>{((siteStats.totalVideos || 0) + (siteStats.totalLearners || 0)).toLocaleString('id-ID')}</span>
                 </div>
               </div>
-            ))}
+
+              {/* Flag Counter Widget */}
+              <div style={{ marginTop: '1.5rem', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+                {/* 
+                  Menggunakan widget gratis dari FlagCounter sebagai pengganti gambar statis.
+                  Nantinya Anda bisa mengganti URL src ini dengan kode widget milik website Anda sendiri.
+                */}
+                <a href="https://info.flagcounter.com/8QG3" target="_blank" rel="noreferrer">
+                  <img 
+                    src="https://s11.flagcounter.com/count2/8QG3/bg_FFFFFF/txt_000000/border_CCCCCC/columns_2/maxflags_10/viewers_0/labels_1/pageviews_1/flags_0/percent_0/" 
+                    alt="Flag Counter" 
+                    border="0" 
+                    style={{ maxWidth: '100%', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }} 
+                  />
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
+      {/* 3. Carousels */}
+      <div style={{ marginTop: '10px', position: 'relative', zIndex: 10 }}>
+        {/* Trending Now */}
+        <Carousel title="Trending Now" items={popularVideos} showRank={true} />
 
+        {/* Dynamic Faculties */}
+        {(() => {
+          const TARGET_CATEGORIES = [
+            "Mata Kuliah Umum",
+            "Fakultas Ilmu Tarbiyah dan Keguruan",
+            "Fakultas Ekonomi dan Bisnis Islam",
+            "Fakultas Syariah",
+            "Fakultas Dakwah dan Komunikasi Islam",
+            "Fakultas Ushuluddin dan Adab",
+            "Program Magister dan Doktor",
+            "Pendidikan Jarak Jauh (PJJ)",
+            "Program Profesi"
+          ];
 
+          const grouped = videos.reduce((acc, video) => {
+            // Priority 1: Check database API categories mapping
+            let resolvedFakultasName = null;
+            const searchTerms = [video.category_slug, video.category, video.fakultas].filter(Boolean).map(t => t.toLowerCase());
+            
+            if (categories && categories.prodi.length > 0) {
+              const matchedProdi = categories.prodi.find(p => {
+                const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                // Trim trailing dashes from slugs when comparing
+                const cleanSlug = slug.replace(/-+$/, '');
+                return searchTerms.some(term => {
+                  const cleanTerm = term.replace(/-+$/, '');
+                  return cleanTerm === cleanSlug || cleanTerm === p.name.toLowerCase();
+                });
+              });
+              
+              if (matchedProdi) {
+                const parentFak = categories.fakultas.find(f => f.id === matchedProdi.fakultasId);
+                if (parentFak) {
+                  resolvedFakultasName = parentFak.name;
+                }
+              } else {
+                // Check if it directly matches a faculty
+                const matchedFak = categories.fakultas.find(f => 
+                  searchTerms.some(term => term === f.name.toLowerCase())
+                );
+                if (matchedFak) {
+                  resolvedFakultasName = matchedFak.name;
+                }
+              }
+            }
 
-      {/* Basic Keyframes for float animation (handled via inline style for simplicity if external CSS isn't possible, but better in CSS) */}
-      <style>{`
-        @keyframes float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-15px); }
-          100% { transform: translateY(0px); }
-        }
-        @keyframes fadeInDown {
-          from { opacity: 0; transform: translateY(-20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .stat-card-modern:hover {
-          transform: translateY(-8px) scale(1.02) !important;
-          box-shadow: 0 30px 60px rgba(0,0,0,0.12) !important;
-        }
-        @media (max-width: 900px) {
-          .home-page section > div:nth-child(2) > div { border-left: none !important; padding-left: 0 !important; }
-        }
-      `}</style>
+            // Rename Pascasarjana for display
+            if (resolvedFakultasName && resolvedFakultasName.includes('Pascasarjana')) {
+              resolvedFakultasName = "Program Magister dan Doktor";
+            }
+
+            // Fallbacks if not found in db
+            let finalTitle = resolvedFakultasName;
+            
+            if (!finalTitle) {
+               // Try to match keywords as a last resort
+               const rawStr = searchTerms.join(" ");
+               if (rawStr.includes("tarbiyah")) finalTitle = "Fakultas Ilmu Tarbiyah dan Keguruan";
+               else if (rawStr.includes("ekonomi") || rawStr.includes("bisnis")) finalTitle = "Fakultas Ekonomi dan Bisnis Islam";
+               else if (rawStr.includes("syariah")) finalTitle = "Fakultas Syariah";
+               else if (rawStr.includes("dakwah") || rawStr.includes("komunikasi")) finalTitle = "Fakultas Dakwah dan Komunikasi Islam";
+               else if (rawStr.includes("ushuluddin") || rawStr.includes("adab")) finalTitle = "Fakultas Ushuluddin dan Adab";
+               else if (rawStr.includes("pascasarjana") || rawStr.includes("magister") || rawStr.includes("doktor")) finalTitle = "Program Magister dan Doktor";
+               else if (rawStr.includes("pjj")) finalTitle = "Pendidikan Jarak Jauh (PJJ)";
+               else if (rawStr.includes("profesi")) finalTitle = "Program Profesi";
+               else finalTitle = "Mata Kuliah Umum";
+            }
+
+            if (!acc[finalTitle]) acc[finalTitle] = [];
+            acc[finalTitle].push(video);
+            return acc;
+          }, {});
+
+          const renderedGroups = [];
+          
+          // 1. Add Target Categories in exact order (if they have videos)
+          TARGET_CATEGORIES.forEach(catName => {
+            if (grouped[catName] && grouped[catName].length > 0) {
+              renderedGroups.push({ title: catName, items: grouped[catName] });
+              delete grouped[catName];
+            }
+          });
+
+          // 2. Add remaining categories
+          Object.keys(grouped).forEach(catTitle => {
+            if (grouped[catTitle] && grouped[catTitle].length > 0) {
+              renderedGroups.push({ title: catTitle, items: grouped[catTitle] });
+            }
+          });
+
+          return renderedGroups.map((group, idx) => {
+            const sortedItems = group.items.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+            return (
+              <Carousel key={idx} title={group.title} items={sortedItems} />
+            );
+          });
+        })()}
+        
+        <Carousel title="Materi Teks & Jurnal" items={allDocuments.slice(0, 10)} />
+      </div>
+
     </div>
   );
 }

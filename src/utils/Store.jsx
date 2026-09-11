@@ -11,10 +11,12 @@ export const AppProvider = ({ children }) => {
   const [materialsPage, setMaterialsPage] = useState(1);
   const [hasMoreMaterials, setHasMoreMaterials] = useState(true);
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(false);
+  const [categories, setCategories] = useState({ fakultas: [], prodi: [] });
 
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [bookmarks, setBookmarks] = useState([]);
   
   const [theme, setTheme] = useState('light');
 
@@ -36,12 +38,28 @@ export const AppProvider = ({ children }) => {
     }
 
     fetchMaterials(1, false);
+    
+    // Fetch categories to map prodi to fakultas globally
+    fetch(`${import.meta.env.VITE_API_URL}/api/categories`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setCategories({ fakultas: data.data.fakultasList, prodi: data.data.prodiList });
+        }
+      })
+      .catch(err => console.error('Error fetching categories:', err));
   }, []);
 
-  const fetchMaterials = async (page = 1, append = false) => {
+  const fetchMaterials = async (page = 1, append = false, filters = {}) => {
     setIsLoadingMaterials(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/materials?page=${page}&limit=12`);
+      const queryParams = new URLSearchParams({ page, limit: 12 });
+      if (filters.search) queryParams.append('search', filters.search);
+      if (filters.category) queryParams.append('category', filters.category);
+      if (filters.type) queryParams.append('type', filters.type);
+      if (filters.sort) queryParams.append('sort', filters.sort);
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/materials?${queryParams.toString()}`);
       const data = await response.json();
       if (data.success) {
         const fetchedVideos = data.data.filter(m => m.type === 'video');
@@ -65,17 +83,58 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const loadMoreMaterials = () => {
+  const loadMoreMaterials = (filters = {}) => {
     if (!isLoadingMaterials && hasMoreMaterials) {
-      fetchMaterials(materialsPage + 1, true);
+      fetchMaterials(materialsPage + 1, true, filters);
     }
   };
 
   useEffect(() => {
     if (token) {
       fetchNotifications();
+      fetchBookmarks();
     }
   }, [token]);
+
+  const fetchBookmarks = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/user/bookmarks`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setBookmarks(data.data.map(b => b.material_id));
+      }
+    } catch (error) {
+      console.error('Error fetching bookmarks:', error);
+    }
+  };
+
+  const toggleBookmark = async (materialId) => {
+    if (!token) {
+      alert("Silakan login terlebih dahulu untuk menyimpan materi.");
+      return false;
+    }
+    
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/user/bookmarks/${materialId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        if (data.is_bookmarked) {
+          setBookmarks([...bookmarks, materialId]);
+        } else {
+          setBookmarks(bookmarks.filter(id => id !== materialId));
+        }
+        return data.is_bookmarked;
+      }
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+    }
+    return false;
+  };
 
   const fetchNotifications = async () => {
     try {
@@ -185,7 +244,11 @@ export const AppProvider = ({ children }) => {
     fetchMaterials,
     loadMoreMaterials,
     hasMoreMaterials,
-    isLoadingMaterials
+    isLoadingMaterials,
+    categories,
+    bookmarks,
+    toggleBookmark,
+    fetchBookmarks
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

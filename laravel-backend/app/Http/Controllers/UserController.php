@@ -71,4 +71,46 @@ class UserController extends Controller
             'profile_pic' => $fileUrl
         ]);
     }
+
+    public function getBookmarks(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $bookmarks = \App\Models\Bookmark::where('user_id', $userId)
+            ->join('materials', 'bookmarks.material_id', '=', 'materials.id')
+            ->select('bookmarks.id as bookmark_id', 'bookmarks.created_at as bookmarked_at', 'materials.id', 'materials.title', 'materials.type', 'materials.category_slug', 'materials.thumbnail_url')
+            ->orderBy('bookmarks.created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $bookmarks
+        ]);
+    }
+
+    public function toggleBookmark(Request $request, $materialId)
+    {
+        $userId = $request->user()->id;
+        
+        $bookmark = \App\Models\Bookmark::where('user_id', $userId)->where('material_id', $materialId)->first();
+        
+        if ($bookmark) {
+            $bookmark->delete();
+            return response()->json([
+                'success' => true,
+                'message' => 'Materi dihapus dari favorit',
+                'is_bookmarked' => false
+            ]);
+        } else {
+            \App\Models\Bookmark::create([
+                'user_id' => $userId,
+                'material_id' => $materialId
+            ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Materi ditambahkan ke favorit',
+                'is_bookmarked' => true
+            ]);
+        }
+    }
 }

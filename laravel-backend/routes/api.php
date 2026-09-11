@@ -41,6 +41,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user/history', [UserController::class, 'getHistory']);
     Route::post('/user/history', [UserController::class, 'recordHistory']);
     Route::post('/user/profile-pic', [UserController::class, 'uploadProfilePic']);
+    Route::get('/user/bookmarks', [UserController::class, 'getBookmarks']);
+    Route::post('/user/bookmarks/{id}', [UserController::class, 'toggleBookmark']);
 
     // Notifikasi
     Route::get('/notifications', [NotificationController::class, 'getUserNotifications']);
