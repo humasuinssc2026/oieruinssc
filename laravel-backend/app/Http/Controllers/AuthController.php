@@ -80,4 +80,41 @@ class AuthController extends Controller
             'message' => 'Logout berhasil'
         ]);
     }
+
+    public function redirectToGoogle()
+    {
+        return \Laravel\Socialite\Facades\Socialite::driver('google')->stateless()->redirect();
+    }
+
+    public function handleGoogleCallback()
+    {
+        try {
+            $googleUser = \Laravel\Socialite\Facades\Socialite::driver('google')->stateless()->user();
+            
+            $user = User::where('email', $googleUser->getEmail())->first();
+
+            if (!$user) {
+                $user = User::create([
+                    'first_name' => $googleUser->user['given_name'] ?? $googleUser->getName(),
+                    'last_name' => $googleUser->user['family_name'] ?? '',
+                    'email' => $googleUser->getEmail(),
+                    'password' => Hash::make(\Illuminate\Support\Str::random(16)),
+                    'role' => 'mahasiswa',
+                    'status' => 'active'
+                ]);
+            }
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/auth/callback?token=' . $token . '&user=' . urlencode(json_encode([
+                'id' => $user->id,
+                'name' => $user->first_name . ' ' . $user->last_name,
+                'email' => $user->email,
+                'role' => $user->role,
+            ])));
+
+        } catch (\Exception $e) {
+            return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?error=google_auth_failed');
+        }
+    }
 }

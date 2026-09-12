@@ -4,6 +4,7 @@ import { Search, PlayCircle, Clock, User, MessageCircle, Filter, Star, FileText,
 import { useAppContext } from '../utils/Store';
 import StarRating from '../components/StarRating';
 import CommentsSection from '../components/CommentsSection';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 // Helper for Google Drive ID
 const getGDrivePreviewUrl = (url) => {
@@ -35,7 +36,16 @@ export default function VideoHub() {
   const initialVideoId = queryParams.get('v') ? parseInt(queryParams.get('v'), 10) : null;
   
   const [activeCategory, setActiveCategory] = useState(initialCategory);
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
   const [sortBy, setSortBy] = useState("latest");
   const [selectedVideoId, setSelectedVideoId] = useState(initialVideoId);
   const { bookmarks, toggleBookmark } = useAppContext();
@@ -376,8 +386,8 @@ export default function VideoHub() {
               <input 
                 type="text" 
                 placeholder="Cari video..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 style={{ border: 'none', background: 'transparent', marginLeft: '0.5rem', outline: 'none' }} 
               />
             </div>
@@ -877,6 +887,9 @@ export default function VideoHub() {
                   <button className="btn btn-outline" style={{ marginTop: '1.5rem', width: '100%' }}>Muat Lebih Banyak Ulasan</button>
                 </div>
               )}
+              
+              {/* Komentar & Ulasan */}
+              <CommentsSection materialId={mainVideo.id} />
             </div>
           </div>
         ) : filteredVideos.length === 0 ? (
@@ -892,15 +905,9 @@ export default function VideoHub() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
               
               {isLoadingMaterials && videos.length === 0 ? (
-                Array(6).fill(0).map((_, i) => (
-                  <div key={i} style={{ background: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                    <div className="skeleton" style={{ aspectRatio: '16/9' }}></div>
-                    <div style={{ padding: '1rem' }}>
-                      <div className="skeleton" style={{ height: '1.2rem', width: '90%', marginBottom: '0.75rem', borderRadius: '4px' }}></div>
-                      <div className="skeleton" style={{ height: '0.8rem', width: '60%', borderRadius: '4px' }}></div>
-                    </div>
-                  </div>
-                ))
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <SkeletonLoader type="card" count={6} />
+                </div>
               ) : (
                 otherVideos.map((video) => {
                   const isWatched = watchedVideos.includes(video.id);

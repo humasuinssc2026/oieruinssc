@@ -51,11 +51,17 @@ export default function GlobalSearch() {
   return (
     <div ref={wrapperRef} style={{ position: 'relative', width: '300px' }}>
       <div style={{ display: 'flex', alignItems: 'center', background: 'var(--surface-hover)', padding: '0.5rem 1rem', borderRadius: '50px' }}>
-        <Search size={18} color=`var(--text-muted)" />
+        <Search size={18} color="var(--text-muted)" />
         <input 
           type="text" 
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && query.trim().length > 0) {
+              setIsOpen(false);
+              navigate(`/search?q=${encodeURIComponent(query)}`);
+            }
+          }}
           placeholder="Cari materi, video..." 
           style={{ border: 'none', background: 'transparent', marginLeft: '0.5rem', outline: 'none', width: '100%', color: 'var(--text-main)' }}
         />

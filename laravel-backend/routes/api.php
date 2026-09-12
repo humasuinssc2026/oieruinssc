@@ -14,6 +14,10 @@ Route::prefix('auth')->middleware('throttle:10,1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
+// Socialite Google Routes
+Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
+Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
+
 // Public routes
 Route::get('/materials', [MaterialController::class, 'index']);
 Route::get('/materials/{id}/reviews', [MaterialController::class, 'getReviews']);

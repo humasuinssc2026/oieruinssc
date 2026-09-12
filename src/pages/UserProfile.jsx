@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useAppContext } from '../utils/Store';
-import { User, LogOut, BookOpen, Clock, Settings, Camera, Bookmark, PlayCircle, Eye } from 'lucide-react';
+import { User, LogOut, BookOpen, Clock, Settings, Camera, Bookmark, PlayCircle, Eye, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function UserProfile() {
@@ -156,6 +156,16 @@ export default function UserProfile() {
             </span>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {profile && profile.role === 'admin' && (
+                <button className="btn" onClick={() => navigate('/admin')} style={{ width: '100%', background: '#3b82f6', color: '#fff', border: '1px solid #3b82f6' }}>
+                  <Settings size={18} /> Panel Admin
+                </button>
+              )}
+              {profile && (
+                <button className="btn" onClick={() => navigate('/upload')} style={{ width: '100%', background: 'var(--primary)', color: '#fff', border: '1px solid var(--primary)' }}>
+                  <Upload size={18} /> Unggah Materi
+                </button>
+              )}
               <button className="btn" onClick={handleLogout} style={{ width: '100%', background: '#ffe3e3', color: '#ff4757', border: '1px solid #ff4757' }}>
                 <LogOut size={18} /> Keluar
               </button>

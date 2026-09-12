@@ -60,8 +60,8 @@ class MaterialController extends Controller
             'type' => 'required|in:document,video',
             'category_slug' => 'required|string',
             'author' => 'required|string',
-            'document_file' => 'nullable|file',
-            'thumbnail_file' => 'nullable|image',
+            'document_file' => 'nullable|file|mimes:pdf,doc,docx,ppt,pptx,mp4|max:51200', // Max 50MB
+            'thumbnail_file' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120', // Max 5MB
             'url' => 'nullable|string',
             'module_url' => 'nullable|string',
             'mata_kuliah' => 'nullable|string',
@@ -135,7 +135,7 @@ class MaterialController extends Controller
             'author' => 'required|string',
             'url' => 'nullable|string',
             'module_url' => 'nullable|string',
-            'thumbnail_file' => 'nullable|image'
+            'thumbnail_file' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120'
         ]);
 
         $material->title = $request->title;

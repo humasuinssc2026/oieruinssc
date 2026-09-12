@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { User, Menu, Moon, Sun, Bell, Check, Languages, ChevronDown, Phone, Mail, MapPin, Search, TrendingUp } from 'lucide-react';
+import { User, Menu, Moon, Sun, Bell, Check, Languages, ChevronDown, Phone, Mail, MapPin, Search, TrendingUp, Settings } from 'lucide-react';
 import { useAppContext } from '../utils/Store';
+import GlobalSearch from './GlobalSearch';
 
 export default function Header() {
   const { videos, user, theme, toggleTheme, notifications, markNotificationAsRead, markAllNotificationsAsRead } = useAppContext();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [currentLang, setCurrentLang] = useState('ID');
   const location = useLocation();
   const navigate = useNavigate();
+  const unreadCount = notifications ? notifications.filter(n => !n.is_read).length : 0;
 
   React.useEffect(() => {
     const match = document.cookie.match(/googtrans=\/id\/([a-z]{2})/);
@@ -120,6 +123,55 @@ export default function Header() {
             {theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}
           </button>
 
+          {/* Notifications */}
+          {user && (
+            <div style={{ position: 'relative' }}>
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                style={{ background: '#fff', border: 'none', cursor: 'pointer', color: '#eab308', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.2rem', borderRadius: '50%', width: '24px', height: '24px', position: 'relative' }}
+              >
+                <Bell size={14} />
+                {unreadCount > 0 && (
+                  <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'red', color: 'white', fontSize: '10px', borderRadius: '50%', width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+              {showNotifications && (
+                <div style={{ position: 'absolute', top: '100%', right: '-80px', marginTop: '8px', width: '300px', background: 'var(--bg)', border: '1px solid var(--border)', boxShadow: '0 5px 15px rgba(0,0,0,0.1)', borderRadius: '8px', zIndex: 100, overflow: 'hidden', textAlign: 'left' }}>
+                  <div style={{ padding: '10px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--text-main)' }}>Notifikasi</span>
+                    {unreadCount > 0 && (
+                      <button onClick={() => { markAllNotificationsAsRead(); setShowNotifications(false); }} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '0.75rem', cursor: 'pointer' }}>Tandai semua dibaca</button>
+                    )}
+                  </div>
+                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    {notifications && notifications.length > 0 ? (
+                      notifications.slice(0, 5).map(notif => (
+                        <div key={notif.id} onClick={() => markNotificationAsRead(notif.id)} style={{ padding: '10px', borderBottom: '1px solid var(--border)', background: notif.is_read ? 'transparent' : 'rgba(59, 130, 246, 0.05)', cursor: 'pointer' }}>
+                          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-main)', fontWeight: notif.is_read ? 'normal' : 'bold' }}>{notif.message}</p>
+                          <small style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>{new Date(notif.created_at).toLocaleDateString()}</small>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Belum ada notifikasi.</div>
+                    )}
+                  </div>
+                  <div style={{ padding: '8px', textAlign: 'center', borderTop: '1px solid var(--border)', background: 'var(--bg)' }}>
+                    <Link to="/notifications" onClick={() => setShowNotifications(false)} style={{ color: '#eab308', fontSize: '0.8rem', textDecoration: 'none', fontWeight: 'bold' }}>Lihat Semua Notifikasi</Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Admin Panel Link */}
+          {user && user.role === 'admin' && (
+             <Link to="/admin" style={{ background: '#3b82f6', color: '#fff', padding: '0.3rem 0.6rem', borderRadius: '4px', textDecoration: 'none', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem' }}>
+               <Settings size={14} /> ADMIN
+             </Link>
+          )}
+
           {/* Login / Register */}
           {user ? (
             <Link to="/profile" style={{ background: '#eab308', color: '#fff', padding: '0.3rem 1rem', borderRadius: '4px', textDecoration: 'none', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -162,12 +214,11 @@ export default function Header() {
         </nav>
 
         {/* Search */}
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <button onClick={() => navigate('/videos')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-main)', display: 'flex', alignItems: 'center' }}>
-            <Search size={20} />
-          </button>
-          
-          <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} style={{ marginLeft: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className="desktop-search">
+            <GlobalSearch />
+          </div>
+          <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             <Menu size={24} />
           </button>
         </div>

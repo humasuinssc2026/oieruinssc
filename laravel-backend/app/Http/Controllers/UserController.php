@@ -56,7 +56,7 @@ class UserController extends Controller
 
     public function uploadProfilePic(Request $request)
     {
-        $request->validate(['profile_pic' => 'required|image']);
+        $request->validate(['profile_pic' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120']);
 
         $path = $request->file('profile_pic')->store('profiles', 'public');
         $fileUrl = '/storage/' . $path;

@@ -10,10 +10,13 @@ import VideoHub from './pages/VideoHub';
 import MaterialDetail from './pages/MaterialDetail';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import UploadMaterial from './pages/UploadMaterial';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import AuthCallback from './pages/AuthCallback';
 
 import UserProfile from './pages/UserProfile';
+import Notifications from './pages/Notifications';
 import About from './pages/About';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
@@ -21,6 +24,7 @@ import Contact from './pages/Contact';
 import Faq from './pages/Faq';
 import Copyright from './pages/Copyright';
 import NotFound from './pages/NotFound';
+import SearchResults from './pages/SearchResults';
 
 // Admin
 import AdminLayout from './admin/AdminLayout';
@@ -68,15 +72,19 @@ export default function App() {
           <Route path="/material/:id" element={<MaterialDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/upload" element={<UploadMaterial />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/profile" element={<UserProfile />} />
+          <Route path="/notifications" element={<Notifications />} />
           <Route path="/about" element={<About />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/faq" element={<Faq />} />
           <Route path="/copyright" element={<Copyright />} />
+          <Route path="/search" element={<SearchResults />} />
           
           {/* Catch all route for 404 Not Found within Layout */}
           <Route path="*" element={<NotFound />} />
