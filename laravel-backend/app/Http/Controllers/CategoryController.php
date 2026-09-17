@@ -9,10 +9,16 @@ class CategoryController extends Controller
 {
     public function index()
     {
-        $faculties = Category::where('type', 'faculty')->get(['id', 'name']);
+        $faculties = Category::where('type', 'faculty')->get(['id', 'name'])->map(function($c) {
+            $c->slug = \Illuminate\Support\Str::slug($c->name);
+            return $c;
+        });
         $prodis = Category::where('type', 'prodi')
             ->select('id', 'name', 'parent_id as fakultasId')
-            ->get();
+            ->get()->map(function($c) {
+                $c->slug = \Illuminate\Support\Str::slug($c->name);
+                return $c;
+            });
             
         return response()->json([
             'success' => true,

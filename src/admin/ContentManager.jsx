@@ -114,7 +114,7 @@ export default function ContentManager() {
         refreshMaterials();
         setActivePlaylistMaterial(prev => ({
           ...prev,
-          parts: [...(prev.parts || []), data.part]
+          parts: [...(prev.parts || []), data.data]
         }));
         toast.success('Bagian berhasil ditambahkan');
       } else {
