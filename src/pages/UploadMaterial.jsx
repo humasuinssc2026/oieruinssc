@@ -14,13 +14,17 @@ export default function UploadMaterial() {
   
   const [formData, setFormData] = useState({
     title: '',
+    description: '',
+    tags: '',
+    difficulty: 'Pemula',
     type: 'document',
     category_slug: '',
     author: user ? `${user.first_name} ${user.last_name}` : '',
     url: '',
     module_url: '',
     mata_kuliah: '',
-    kode_mata_kuliah: ''
+    kode_mata_kuliah: '',
+    agree_license: false
   });
   
   const [documentFile, setDocumentFile] = useState(null);
@@ -54,8 +58,8 @@ export default function UploadMaterial() {
   }, [user, token, navigate]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleFileChange = (e, type) => {
@@ -66,6 +70,12 @@ export default function UploadMaterial() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!formData.agree_license) {
+      toast.error("Anda harus menyetujui pernyataan hak cipta/lisensi.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -165,6 +175,40 @@ export default function UploadMaterial() {
               </div>
             </div>
 
+            {/* Deskripsi */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-main)' }}>Deskripsi Materi *</label>
+              <textarea 
+                name="description" value={formData.description} onChange={handleChange} required
+                placeholder="Jelaskan ringkasan atau tujuan dari materi ini..."
+                rows="4"
+                style={{ width: '100%', padding: '0.8rem', border: '1px solid var(--border)', borderRadius: '8px', outline: 'none', resize: 'vertical' }}
+              />
+            </div>
+            
+            {/* Tags & Tingkat Kesulitan */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-main)' }}>Kata Kunci / Tags</label>
+                <input 
+                  type="text" name="tags" value={formData.tags} onChange={handleChange}
+                  placeholder="Pisahkan dengan koma (contoh: hukum, sejarah islam)"
+                  style={{ width: '100%', padding: '0.8rem', border: '1px solid var(--border)', borderRadius: '8px', outline: 'none' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-main)' }}>Tingkat Kesulitan</label>
+                <select 
+                  name="difficulty" value={formData.difficulty} onChange={handleChange}
+                  style={{ width: '100%', padding: '0.8rem', border: '1px solid var(--border)', borderRadius: '8px', outline: 'none', background: 'transparent' }}
+                >
+                  <option value="Pemula">Dasar / Pemula</option>
+                  <option value="Menengah">Menengah</option>
+                  <option value="Lanjut">Lanjut / Spesialisasi</option>
+                </select>
+              </div>
+            </div>
+
             {/* Mata Kuliah & Kode */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
               <div>
@@ -237,6 +281,19 @@ export default function UploadMaterial() {
                   style={{ width: '100%', padding: '0.8rem', border: '1px solid var(--border)', borderRadius: '8px', outline: 'none' }}
                 />
               </div>
+            </div>
+
+            {/* Lisensi / Hak Cipta */}
+            <div style={{ marginTop: '0.5rem', padding: '1.2rem', background: 'rgba(239, 68, 68, 0.05)', borderLeft: '4px solid #ef4444', borderRadius: '4px' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem', cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" name="agree_license" checked={formData.agree_license} onChange={handleChange}
+                  style={{ marginTop: '0.2rem', width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+                  <strong>Pernyataan Hak Cipta:</strong> Saya mengonfirmasi bahwa materi ini adalah karya asli saya atau saya memiliki hak/lisensi (contoh: <em>Creative Commons</em>) untuk membagikannya secara publik. Saya menyetujui bahwa saya bertanggung jawab penuh atas segala konsekuensi hukum apabila terjadi pelanggaran hak cipta.
+                </span>
+              </label>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>

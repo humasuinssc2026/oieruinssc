@@ -191,14 +191,18 @@ body, html {
 }
 
 /* Marquee Animation */
-@keyframes marquee {
-  0% { transform: translateX(100vw); }
-  100% { transform: translateX(-100%); }
+@keyframes scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
 }
 
-.marquee-text {
-  animation: marquee 35s linear infinite;
-  display: inline-block;
+.marquee-content {
+  display: flex;
   white-space: nowrap;
+  animation: scroll 25s linear infinite;
+}
+
+.marquee-container:hover .marquee-content {
+  animation-play-state: paused;
 }
 

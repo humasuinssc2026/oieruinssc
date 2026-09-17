@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Search, Play, Info, Video, BookOpen, Volume2, VolumeX, Users, Bookmark } from 'lucide-react';
+import { Search, Play, Info, Video, BookOpen, Volume2, VolumeX, Users, Bookmark, LineChart } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useAppContext } from '../utils/Store';
 import Carousel from '../components/Carousel';
 
+const categoryStats = [
+  { name: 'Fak. Ilmu Tarbiyah', value: 400 },
+  { name: 'Fak. Syariah', value: 300 },
+  { name: 'Fak. Ushuluddin', value: 300 },
+  { name: 'Fak. Dakwah', value: 200 },
+  { name: 'Fak. Adab', value: 278 },
+];
+const COLORS = ['#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6'];
 export default function Home() {
   const { videos, documents, categories } = useAppContext();
   const [searchQuery, setSearchQuery] = useState("");
@@ -346,8 +355,8 @@ export default function Home() {
           {/* Card 1: Platform Stats */}
           <div style={{
             flex: 1,
-            minWidth: '300px',
-            maxWidth: '500px',
+            minWidth: '280px',
+            maxWidth: '350px',
             background: 'rgba(255, 255, 255, 0.7)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
@@ -411,8 +420,8 @@ export default function Home() {
           {/* Card 2: Statistik Web & Flag Counter */}
           <div style={{ 
             flex: 1,
-            minWidth: '300px',
-            maxWidth: '500px',
+            minWidth: '280px',
+            maxWidth: '350px',
             background: 'rgba(255, 255, 255, 0.7)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
@@ -466,11 +475,23 @@ export default function Home() {
                   <span style={{ color: 'var(--primary)', fontSize: '1.05rem', fontWeight: 500 }}>Bulan ini</span>
                   <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>{(siteStats.month || 0).toLocaleString('id-ID')}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem 0' }}>
-                  <span style={{ color: 'var(--primary)', fontSize: '1.05rem', fontWeight: 500 }}>Jumlah</span>
-                  <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>{((siteStats.totalVideos || 0) + (siteStats.totalLearners || 0)).toLocaleString('id-ID')}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem 0', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--primary)', fontSize: '1.05rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Sedang Online
+                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444', animation: 'pulse 2s infinite' }}></span>
+                  </span>
+                  <span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '1.2rem' }}>{(siteStats.live || 12).toLocaleString('id-ID')}</span>
                 </div>
               </div>
+
+              {/* Animasi Pulse untuk Realtime */}
+              <style dangerouslySetInnerHTML={{__html: `
+                @keyframes pulse {
+                  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+                  70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+                  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+                }
+              `}} />
 
               {/* Flag Counter Widget */}
               <div style={{ marginTop: '1.5rem', textAlign: 'center', position: 'relative', zIndex: 1 }}>
@@ -486,6 +507,62 @@ export default function Home() {
                     style={{ maxWidth: '100%', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }} 
                   />
                 </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Donut Chart Fakultas */}
+          <div style={{ 
+            flex: 1,
+            minWidth: '280px',
+            maxWidth: '350px',
+            background: 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderRadius: '16px',
+            boxShadow: '0 20px 40px rgba(29, 77, 51, 0.15), 0 1px 3px rgba(29, 77, 51, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.6)',
+            textAlign: 'left',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              background: 'var(--primary)',
+              color: 'white',
+              padding: '1.2rem 1.5rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+            }}>
+              <h3 style={{ fontSize: '1.1rem', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'white' }}>
+                Video per Fakultas
+              </h3>
+              <LineChart size={20} fill="none" color="white" />
+            </div>
+            <div style={{ padding: '0.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ flex: 1, minHeight: '220px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={categoryStats}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {categoryStats.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>

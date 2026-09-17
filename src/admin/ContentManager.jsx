@@ -22,6 +22,10 @@ export default function ContentManager() {
   const [formUrl, setFormUrl] = useState('');
   const [formModuleUrl, setFormModuleUrl] = useState('');
   const [formThumbnail, setFormThumbnail] = useState(null);
+  const [formDescription, setFormDescription] = useState('');
+  const [formTags, setFormTags] = useState('');
+  const [formDifficulty, setFormDifficulty] = useState('Pemula');
+  const [formAgreeLicense, setFormAgreeLicense] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -156,6 +160,10 @@ export default function ContentManager() {
     setFormUrl('');
     setFormModuleUrl('');
     setFormThumbnail(null);
+    setFormDescription('');
+    setFormTags('');
+    setFormDifficulty('Pemula');
+    setFormAgreeLicense(false);
     setIsModalOpen(true);
   };
 
@@ -169,6 +177,9 @@ export default function ContentManager() {
     setFormUrl(material.type === 'video' ? material.file_url : '');
     setFormModuleUrl(material.module_url || '');
     setFormThumbnail(null);
+    setFormDescription(material.description || '');
+    setFormTags(material.tags || '');
+    setFormDifficulty(material.difficulty || 'Pemula');
     setIsEditModalOpen(true);
   };
 
@@ -187,6 +198,9 @@ export default function ContentManager() {
     formData.append('author', formAuthor);
     formData.append('mata_kuliah', formMataKuliah);
     formData.append('kode_mata_kuliah', formKodeMataKuliah);
+    formData.append('description', formDescription);
+    formData.append('tags', formTags);
+    formData.append('difficulty', formDifficulty);
     
     if (editingMaterial.type === 'video' && formUrl) {
       formData.append('url', formUrl);
@@ -225,8 +239,13 @@ export default function ContentManager() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formTitle || !formCategory || !formAuthor) {
+    if (!formTitle || !formCategory || !formAuthor || !formDescription) {
       toast.error("Mohon isi semua bidang yang wajib.");
+      return;
+    }
+    
+    if (!formAgreeLicense) {
+      toast.error("Anda harus menyetujui pernyataan hak cipta/lisensi.");
       return;
     }
 
@@ -238,6 +257,9 @@ export default function ContentManager() {
     formData.append('author', formAuthor);
     formData.append('mata_kuliah', formMataKuliah);
     formData.append('kode_mata_kuliah', formKodeMataKuliah);
+    formData.append('description', formDescription);
+    formData.append('tags', formTags);
+    formData.append('difficulty', formDifficulty);
 
     if (uploadType === 'text') {
       if (!formModuleUrl) {
@@ -480,6 +502,26 @@ export default function ContentManager() {
                   ))}
                 </select>
               </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Deskripsi Materi *</label>
+                <textarea required placeholder="Jelaskan ringkasan materi..." value={formDescription} onChange={e => setFormDescription(e.target.value)} rows="3" style={{ width: '100%', padding: '0.75rem', border: '1px solid #ced4da', borderRadius: '6px', outline: 'none', resize: 'vertical' }} />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div style={{ flex: 2 }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Kata Kunci / Tags</label>
+                  <input type="text" placeholder="Hukum, sejarah..." value={formTags} onChange={e => setFormTags(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '1px solid #ced4da', borderRadius: '6px', outline: 'none' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Tingkat Kesulitan</label>
+                  <select value={formDifficulty} onChange={e => setFormDifficulty(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '1px solid #ced4da', borderRadius: '6px', outline: 'none', background: 'white' }}>
+                    <option value="Pemula">Dasar / Pemula</option>
+                    <option value="Menengah">Menengah</option>
+                    <option value="Lanjut">Lanjut / Spesialisasi</option>
+                  </select>
+                </div>
+              </div>
               
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem' }}>
                 <div style={{ flex: 1 }}>
@@ -530,6 +572,15 @@ export default function ContentManager() {
                     <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Masukkan URL lengkap ke dokumen PDF di Google Drive (pastikan bisa diakses publik).</p>
                   </div>
 
+              <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'rgba(239,68,68,0.05)', borderLeft: '4px solid #ef4444', borderRadius: '4px' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', cursor: 'pointer', margin: 0 }}>
+                  <input type="checkbox" checked={formAgreeLicense} onChange={e => setFormAgreeLicense(e.target.checked)} style={{ marginTop: '0.2rem', cursor: 'pointer' }} />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.4 }}>
+                    <strong>Pernyataan Hak Cipta:</strong> Saya mengonfirmasi bahwa materi ini adalah karya asli saya atau saya memiliki hak lisensi (Creative Commons) untuk membagikannya.
+                  </span>
+                </label>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
                 <button type="button" className="btn btn-outline" onClick={() => setIsModalOpen(false)} style={{ padding: '0.75rem 1.5rem' }}>Batal</button>
                 <button type="submit" disabled={isSubmitting} className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', opacity: isSubmitting ? 0.7 : 1 }}>
@@ -574,6 +625,26 @@ export default function ContentManager() {
                     </optgroup>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Deskripsi Materi *</label>
+                <textarea required className="admin-input" placeholder="Jelaskan ringkasan materi..." value={formDescription} onChange={e => setFormDescription(e.target.value)} rows="3" />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 2 }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Kata Kunci / Tags</label>
+                  <input type="text" className="admin-input" placeholder="Hukum, sejarah..." value={formTags} onChange={e => setFormTags(e.target.value)} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Tingkat Kesulitan</label>
+                  <select className="admin-input" value={formDifficulty} onChange={e => setFormDifficulty(e.target.value)} style={{ background: 'white' }}>
+                    <option value="Pemula">Dasar / Pemula</option>
+                    <option value="Menengah">Menengah</option>
+                    <option value="Lanjut">Lanjut / Spesialisasi</option>
+                  </select>
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '1rem' }}>

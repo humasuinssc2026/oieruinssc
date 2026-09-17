@@ -238,22 +238,35 @@ export default function Header() {
         <div style={{ color: '#eab308', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', whiteSpace: 'nowrap', zIndex: 2, background: '#143621', paddingRight: '1rem' }}>
           <TrendingUp size={14} /> TRENDING
         </div>
-        <div style={{ flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', position: 'relative', display: 'flex', alignItems: 'center' }}>
-           <div className="marquee-text" style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
-             {trendingVideos.length > 0 ? (
-               trendingVideos.map((v, i) => (
-                 <span key={i}>
-                   <span style={{ color: '#ef4444', marginRight: '0.3rem', marginLeft: '2rem' }}>&#9654;</span> 
+         <div className="marquee-container" style={{ flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', position: 'relative', display: 'flex', alignItems: 'center' }}>
+           {trendingVideos.length > 3 ? (
+             <marquee behavior="scroll" direction="left" scrollamount="5" onMouseOver={(e) => e.target.stop()} onMouseOut={(e) => e.target.start()} style={{ display: 'flex', whiteSpace: 'nowrap', alignItems: 'center', height: '100%' }}>
+               {trendingVideos.map((v, i) => (
+                 <span key={i} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '2rem' }}>
+                   <span style={{ color: '#ef4444', marginRight: '0.3rem' }}>&#9654;</span> 
                    <Link to={`/videos?v=${v.id}`} style={{ color: '#fff', textDecoration: 'none' }} onMouseOver={(e) => e.target.style.textDecoration='underline'} onMouseOut={(e) => e.target.style.textDecoration='none'}>
                      {v.title}
                    </Link>
                  </span>
-               ))
-             ) : (
-               <span style={{ marginLeft: '2rem' }}>Memuat video trending...</span>
-             )}
-           </div>
-        </div>
+               ))}
+             </marquee>
+           ) : (
+             <div style={{ display: 'flex', whiteSpace: 'nowrap' }}>
+               {trendingVideos.length > 0 ? (
+                 trendingVideos.map((v, i) => (
+                   <span key={i} style={{ display: 'flex', alignItems: 'center' }}>
+                     <span style={{ color: '#ef4444', marginRight: '0.3rem', marginLeft: '2rem' }}>&#9654;</span> 
+                     <Link to={`/videos?v=${v.id}`} style={{ color: '#fff', textDecoration: 'none' }} onMouseOver={(e) => e.target.style.textDecoration='underline'} onMouseOut={(e) => e.target.style.textDecoration='none'}>
+                       {v.title}
+                     </Link>
+                   </span>
+                 ))
+               ) : (
+                 <span style={{ marginLeft: '2rem' }}>Memuat video trending...</span>
+               )}
+             </div>
+           )}
+         </div>
       </div>
 
       {/* Mobile Menu Overlay */}

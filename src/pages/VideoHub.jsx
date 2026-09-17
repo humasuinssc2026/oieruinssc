@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useLocation } from 'react-router-dom';
 import { Search, PlayCircle, Clock, User, MessageCircle, Filter, Star, FileText, Eye, Check, X, Bookmark } from 'lucide-react';
 import { useAppContext } from '../utils/Store';
 import StarRating from '../components/StarRating';
@@ -31,7 +32,8 @@ const formatCategory = (slug) => {
 
 export default function VideoHub() {
   const { videos, user, token, hasMoreMaterials, loadMoreMaterials, isLoadingMaterials } = useAppContext();
-  const queryParams = new URLSearchParams(window.location.search);
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
   const initialCategory = queryParams.get('category') || "";
   const initialVideoId = queryParams.get('v') ? parseInt(queryParams.get('v'), 10) : null;
   
@@ -56,7 +58,7 @@ export default function VideoHub() {
     if (v) {
       setSelectedVideoId(parseInt(v, 10));
     }
-  }, [window.location.search]);
+  }, [location.search]);
 
   const [activeTab, setActiveTab] = useState("overview");
   const [watchedVideos, setWatchedVideos] = useState([]);
@@ -165,6 +167,17 @@ export default function VideoHub() {
     ? (activeModuleUrl.startsWith('http') ? getGDrivePreviewUrl(activeModuleUrl) : activeModuleUrl)
     : null;
 
+  const getYoutubeEmbedUrl = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+      return `https://www.youtube.com/embed/${match[2]}`;
+    }
+    return null;
+  };
+  const youtubeEmbedUrl = getYoutubeEmbedUrl(playingGdriveUrl);
+
   useEffect(() => {
     if (mainVideo) {
       // Check if we've already viewed this video in this session to prevent spam
@@ -270,7 +283,17 @@ export default function VideoHub() {
             
             {/* Video Content */}
             <div style={{ width: '100%', aspectRatio: '16/9', position: 'relative', background: 'black' }}>
-              {playingGdriveUrl.includes('drive.google.com') ? (
+              {youtubeEmbedUrl ? (
+                <iframe 
+                  width="100%" 
+                  height="100%" 
+                  src={youtubeEmbedUrl}
+                  title="YouTube Video Player" 
+                  frameBorder="0" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowFullScreen
+                ></iframe>
+              ) : playingGdriveUrl.includes('drive.google.com') ? (
                 <>
                   <iframe 
                     width="100%" 
@@ -713,7 +736,7 @@ export default function VideoHub() {
                     <h3 style={{ margin: '0 0 0.5rem 0' }}>{mainVideo.author}</h3>
                     <p style={{ color: 'var(--primary)', fontWeight: '500', margin: '0 0 1rem 0', fontSize: '0.9rem' }}>Pengampu Mata Kuliah</p>
                     <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', margin: 0 }}>
-                      {mainVideo.author} adalah tenaga pengajar di lingkungan Universitas yang ahli di bidang ini. Beliau aktif mengembangkan bahan ajar digital interaktif untuk mahasiswa UIN Sunan Kalijaga.
+                      {mainVideo.author} adalah tenaga pengajar di lingkungan Universitas yang ahli di bidang ini. Beliau aktif mengembangkan bahan ajar digital interaktif untuk mahasiswa UIN Siber Syekh Nurjati Cirebon.
                     </p>
                   </div>
                 </div>
